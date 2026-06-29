@@ -1,0 +1,12 @@
+alter table public.validations
+  add column if not exists intervention_price numeric(12, 2),
+  add column if not exists gps_position text;
+
+drop policy if exists "Public can read validation assets"
+  on storage.objects;
+
+create policy "Public can read validation assets"
+  on storage.objects
+  for select
+  to anon
+  using (bucket_id = 'validation-assets');

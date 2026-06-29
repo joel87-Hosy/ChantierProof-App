@@ -4,6 +4,8 @@
       id: "demo",
       client_name: "Client demo",
       intervention_title: "Remise en etat tableau electrique",
+      intervention_price: 250,
+      gps_position: "5.3600, -4.0083",
       status: "pending",
       created_at: new Date().toISOString()
     }
@@ -18,6 +20,16 @@
   const qrPanel = document.getElementById("qr-panel");
   const qrCode = document.getElementById("qr-code");
   const errorBox = document.getElementById("dashboard-error");
+  const dialog = document.getElementById("new-validation-dialog");
+  const form = document.getElementById("new-validation-form");
+  const closeDialogButton = document.getElementById("close-validation-dialog");
+  const cancelDialogButton = document.getElementById("cancel-validation-dialog");
+  const useGpsButton = document.getElementById("use-current-gps");
+  const modalError = document.getElementById("new-validation-error");
+  const clientNameInput = document.getElementById("new-client-name");
+  const interventionTitleInput = document.getElementById("new-intervention-title");
+  const interventionPriceInput = document.getElementById("new-intervention-price");
+  const gpsPositionInput = document.getElementById("new-gps-position");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
 
   let rows = [];
@@ -25,6 +37,10 @@
 
   function validationUrl(id) {
     return new URL(`./v/validation.html?id=${encodeURIComponent(id)}`, window.location.href).href;
+  }
+
+  function detailUrl(id) {
+    return new URL(`./validation-detail.html?id=${encodeURIComponent(id)}`, window.location.href).href;
   }
 
   function setGeneratedLink(url) {
@@ -61,10 +77,41 @@
     errorBox.classList.add("hidden");
   }
 
+  function showModalError(message) {
+    modalError.textContent = message;
+    modalError.classList.remove("hidden");
+  }
+
+  function clearModalError() {
+    modalError.textContent = "";
+    modalError.classList.add("hidden");
+  }
+
+  function openDialog() {
+    clearError();
+    clearModalError();
+    form.reset();
+    dialog.showModal();
+    clientNameInput.focus();
+  }
+
+  function closeDialog() {
+    dialog.close();
+  }
+
   function statusBadge(status) {
-    if (status === "signed") return '<span class="badge badge-signed">Validé</span>';
+    if (status === "signed") return '<span class="badge badge-signed">Valide</span>';
     if (status === "dispute") return '<span class="badge badge-dispute">Litige</span>';
     return '<span class="badge badge-pending">En attente</span>';
+  }
+
+  function formatPrice(value) {
+    if (value === null || value === undefined || value === "") return "-";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      maximumFractionDigits: 0
+    }).format(Number(value));
   }
 
   function render() {
@@ -74,8 +121,9 @@
         <td class="px-4 py-3 font-medium">${row.client_name || "-"}</td>
         <td class="px-4 py-3 text-slate-600">${row.intervention_title || "-"}</td>
         <td class="px-4 py-3">${statusBadge(row.status)}</td>
+        <td class="px-4 py-3 text-slate-600">${formatPrice(row.intervention_price)}</td>
         <td class="px-4 py-3 text-slate-600">${window.ChantierProof.formatDate(row.created_at)}</td>
-        <td class="px-4 py-3"><a class="text-blue-700 font-semibold" href="${validationUrl(row.id)}">Ouvrir</a></td>
+        <td class="px-4 py-3"><a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Ouvrir</a></td>
       </tr>
     `).join("");
 
@@ -102,28 +150,41 @@
     render();
   }
 
-  async function createValidation() {
+  async function createValidation(event) {
+    event.preventDefault();
     clearError();
-    const clientName = prompt("Nom du client");
-    if (!clientName) return;
+    clearModalError();
 
-    const interventionTitle = prompt("Objet de l'intervention");
-    if (!interventionTitle) return;
+    const clientName = clientNameInput.value.trim();
+    const interventionTitle = interventionTitleInput.value.trim();
+    const price = interventionPriceInput.value ? Number(interventionPriceInput.value) : null;
+    const gpsPosition = gpsPositionInput.value.trim() || null;
+
+    if (!clientName || !interventionTitle) {
+      showModalError("Renseigne le client et l'objet de l'intervention.");
+      return;
+    }
 
     try {
       const client = window.ChantierProof.getClient();
       const response = await client
         .from("validations")
-        .insert({ client_name: clientName, intervention_title: interventionTitle })
+        .insert({
+          client_name: clientName,
+          intervention_title: interventionTitle,
+          intervention_price: price,
+          gps_position: gpsPosition
+        })
         .select("id")
         .single();
 
       if (response.error) throw response.error;
       setGeneratedLink(validationUrl(response.data.id));
+      closeDialog();
       await loadRows();
     } catch (error) {
       console.error("Create validation failed:", error);
-      showError(`Création impossible dans Supabase : ${error.message || "vérifie les policies RLS."}`);
+      showModalError(`Creation impossible dans Supabase : ${error.message || "verifie les colonnes et policies RLS."}`);
     }
   }
 
@@ -135,16 +196,44 @@
     });
   });
 
-  newButton.addEventListener("click", createValidation);
+  newButton.addEventListener("click", openDialog);
+  closeDialogButton.addEventListener("click", closeDialog);
+  cancelDialogButton.addEventListener("click", closeDialog);
+  form.addEventListener("submit", createValidation);
+
+  useGpsButton.addEventListener("click", () => {
+    clearModalError();
+    if (!navigator.geolocation) {
+      showModalError("La geolocalisation n'est pas disponible dans ce navigateur.");
+      return;
+    }
+
+    useGpsButton.disabled = true;
+    useGpsButton.textContent = "Localisation...";
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        gpsPositionInput.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        restoreButtonIcon(useGpsButton, "map-pin", "Utiliser ma position");
+        useGpsButton.disabled = false;
+      },
+      (error) => {
+        showModalError(`Position GPS indisponible : ${error.message}`);
+        restoreButtonIcon(useGpsButton, "map-pin", "Utiliser ma position");
+        useGpsButton.disabled = false;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  });
 
   copyButton.addEventListener("click", async () => {
     if (!linkInput.value) return;
     try {
       await navigator.clipboard.writeText(linkInput.value);
-      copyButton.textContent = "Copié";
+      copyButton.textContent = "Copie";
     } catch (error) {
       linkInput.select();
-      copyButton.textContent = "Lien sélectionné";
+      copyButton.textContent = "Lien selectionne";
     }
     setTimeout(() => { restoreButtonIcon(copyButton, "copy", "Copier"); }, 1200);
   });
@@ -153,7 +242,7 @@
     if (!linkInput.value) return;
     if (!navigator.share) {
       linkInput.select();
-      shareButton.textContent = "Lien sélectionné";
+      shareButton.textContent = "Lien selectionne";
       setTimeout(() => { restoreButtonIcon(shareButton, "share-2", "Partager"); }, 1200);
       return;
     }

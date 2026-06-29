@@ -12,6 +12,8 @@ create table if not exists public.validations (
   created_at timestamptz not null default now(),
   client_name text not null,
   intervention_title text not null,
+  intervention_price numeric(12, 2),
+  gps_position text,
   status public.validation_status not null default 'pending',
   photo_before_url text,
   photo_after_url text,
@@ -19,6 +21,10 @@ create table if not exists public.validations (
   signer_name text,
   signed_at timestamptz
 );
+
+alter table public.validations
+  add column if not exists intervention_price numeric(12, 2),
+  add column if not exists gps_position text;
 
 create index if not exists validations_status_idx
   on public.validations (status);
@@ -122,3 +128,12 @@ create policy "Public can upload validation assets"
   for insert
   to anon
   with check (bucket_id = 'validation-assets');
+
+drop policy if exists "Public can read validation assets"
+  on storage.objects;
+
+create policy "Public can read validation assets"
+  on storage.objects
+  for select
+  to anon
+  using (bucket_id = 'validation-assets');

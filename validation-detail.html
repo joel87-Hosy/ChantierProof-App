@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Détail validation | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 md-px-8">
+      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
+        <div>
+          <a class="text-sm font-semibold text-blue-700" href="./dashboard.html">Retour au dashboard</a>
+          <h1 id="detail-client" class="mt-2 text-3xl font-bold">Chargement...</h1>
+          <p id="detail-title" class="mt-2 text-slate-600"></p>
+        </div>
+        <div id="detail-status"></div>
+      </header>
+
+      <section class="mt-6 grid gap-4 md-grid-cols-3">
+        <article class="panel">
+          <p class="text-sm text-slate-500">Tarif</p>
+          <p id="detail-price" class="mt-2 text-3xl font-bold">-</p>
+        </article>
+        <article class="panel">
+          <p class="text-sm text-slate-500">Position GPS</p>
+          <p id="detail-gps" class="mt-2 font-semibold">-</p>
+          <a id="detail-map-link" class="mt-2 block text-sm font-semibold text-blue-700 hidden" target="_blank" rel="noreferrer">Ouvrir la carte</a>
+        </article>
+        <article class="panel">
+          <p class="text-sm text-slate-500">Signature</p>
+          <p id="detail-signer" class="mt-2 font-semibold">-</p>
+          <p id="detail-signed-at" class="mt-1 text-sm text-slate-600">-</p>
+        </article>
+      </section>
+
+      <section class="mt-6 grid gap-4 sm-grid-cols-2">
+        <article class="panel">
+          <h2 class="text-lg font-semibold">Photo avant intervention</h2>
+          <div id="detail-before" class="photo-preview mt-4">Aucune photo pour le moment</div>
+        </article>
+        <article class="panel">
+          <h2 class="text-lg font-semibold">Photo après intervention</h2>
+          <div id="detail-after" class="photo-preview mt-4">Aucune photo pour le moment</div>
+        </article>
+      </section>
+
+      <p id="detail-error" class="hidden mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./lib/config.js"></script>
+    <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/validation-detail.js"></script>
+  </body>
+</html>
