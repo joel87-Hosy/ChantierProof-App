@@ -51,12 +51,14 @@
     interventionTitle.textContent = validation.intervention_title;
   }
 
-  async function uploadFile(client, file, path) {
+  async function uploadFile(client, file, path, label) {
     if (!file) return null;
     const response = await client.storage
       .from(window.CHANTIERPROOF_CONFIG.storageBucket)
-      .upload(path, file, { upsert: true });
-    if (response.error) throw response.error;
+      .upload(path, file);
+    if (response.error) {
+      throw new Error(`${label} : ${response.error.message}`);
+    }
     return response.data.path;
   }
 
@@ -84,9 +86,9 @@
       const client = window.ChantierProof.getClient();
       const signatureBlob = await signature.toBlob();
       const prefix = `${id}/${Date.now()}`;
-      const beforePath = await uploadFile(client, beforeInput.files[0], `${prefix}-before.jpg`);
-      const afterPath = await uploadFile(client, afterInput.files[0], `${prefix}-after.jpg`);
-      const signaturePath = await uploadFile(client, signatureBlob, `${prefix}-signature.png`);
+      const beforePath = await uploadFile(client, beforeInput.files[0], `${prefix}-before.jpg`, "Upload photo avant");
+      const afterPath = await uploadFile(client, afterInput.files[0], `${prefix}-after.jpg`, "Upload photo après");
+      const signaturePath = await uploadFile(client, signatureBlob, `${prefix}-signature.png`, "Upload signature");
 
       const response = await client.from("validations").update({
         status: "signed",
@@ -97,7 +99,9 @@
         signed_at: new Date().toISOString()
       }).eq("id", id).eq("status", "pending");
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        throw new Error(`Mise à jour validation : ${response.error.message}`);
+      }
       window.location.href = `./success.html?id=${encodeURIComponent(id)}`;
     } catch (error) {
       console.error("Seal validation failed:", error);
