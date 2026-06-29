@@ -41,6 +41,15 @@ create policy "Authenticated users can manage validations"
   using (true)
   with check (true);
 
+drop policy if exists "Public can create pending validations"
+  on public.validations;
+
+create policy "Public can create pending validations"
+  on public.validations
+  for insert
+  to anon
+  with check (status = 'pending');
+
 drop policy if exists "Public can read pending validations"
   on public.validations;
 

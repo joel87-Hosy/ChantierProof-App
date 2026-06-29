@@ -17,6 +17,7 @@
   const shareButton = document.getElementById("share-link-btn");
   const qrPanel = document.getElementById("qr-panel");
   const qrCode = document.getElementById("qr-code");
+  const errorBox = document.getElementById("dashboard-error");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
 
   let rows = [];
@@ -46,6 +47,18 @@
   function restoreButtonIcon(button, icon, label) {
     button.innerHTML = `<i data-lucide="${icon}" class="icon"></i>${label}`;
     window.lucide?.createIcons();
+  }
+
+  function showError(message) {
+    if (!errorBox) return;
+    errorBox.textContent = message;
+    errorBox.classList.remove("hidden");
+  }
+
+  function clearError() {
+    if (!errorBox) return;
+    errorBox.textContent = "";
+    errorBox.classList.add("hidden");
   }
 
   function statusBadge(status) {
@@ -90,6 +103,7 @@
   }
 
   async function createValidation() {
+    clearError();
     const clientName = prompt("Nom du client");
     if (!clientName) return;
 
@@ -108,16 +122,8 @@
       setGeneratedLink(validationUrl(response.data.id));
       await loadRows();
     } catch (error) {
-      const id = crypto.randomUUID();
-      setGeneratedLink(validationUrl(id));
-      rows.unshift({
-        id,
-        client_name: clientName,
-        intervention_title: interventionTitle,
-        status: "pending",
-        created_at: new Date().toISOString()
-      });
-      render();
+      console.error("Create validation failed:", error);
+      showError(`Création impossible dans Supabase : ${error.message || "vérifie les policies RLS."}`);
     }
   }
 

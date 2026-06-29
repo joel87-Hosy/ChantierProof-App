@@ -37,12 +37,14 @@
       if (response.error) throw response.error;
       validation = response.data;
     } catch (error) {
-      validation = {
-        id,
-        client_name: "Client demo",
-        intervention_title: "Intervention demo",
-        status: "pending"
-      };
+      console.error("Load validation failed:", error);
+      showError(`Validation introuvable dans Supabase : ${error.message || "vérifie le lien généré."}`);
+      clientName.textContent = "Lien invalide";
+      interventionTitle.textContent = "";
+      form.querySelectorAll("input, button, canvas").forEach((element) => {
+        if (element.id !== "clear-signature") element.disabled = true;
+      });
+      return;
     }
 
     clientName.textContent = validation.client_name;
@@ -93,12 +95,13 @@
         signature_png_url: signaturePath,
         signer_name: signerInput.value.trim(),
         signed_at: new Date().toISOString()
-      }).eq("id", id);
+      }).eq("id", id).select("id").single();
 
       if (response.error) throw response.error;
       window.location.href = `./success.html?id=${encodeURIComponent(id)}`;
     } catch (error) {
-      showError("Impossible de sceller l'intervention. Vérifie la configuration Supabase.");
+      console.error("Seal validation failed:", error);
+      showError(`Impossible de sceller l'intervention : ${error.message || "vérifie la configuration Supabase."}`);
       sealButton.disabled = false;
       sealButton.textContent = "Valider et Sceller l'intervention";
     }
