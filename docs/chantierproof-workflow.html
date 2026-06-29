@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <title>Workflow ChantierProof</title>
+    <style>
+      @page { margin: 18mm; size: A4; }
+      * { box-sizing: border-box; }
+      body {
+        color: #0f172a;
+        font-family: "Segoe UI", Arial, sans-serif;
+        line-height: 1.48;
+        margin: 0;
+      }
+      .cover {
+        border-bottom: 4px solid #1d4ed8;
+        margin-bottom: 24px;
+        padding-bottom: 22px;
+      }
+      .brand {
+        align-items: center;
+        display: flex;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+      .mark {
+        align-items: center;
+        background: #1d4ed8;
+        border-radius: 8px;
+        color: #fff;
+        display: inline-flex;
+        font-weight: 800;
+        height: 42px;
+        justify-content: center;
+        letter-spacing: .04em;
+        width: 42px;
+      }
+      .brand-name {
+        color: #1d4ed8;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.08;
+        margin: 0 0 10px;
+      }
+      h2 {
+        border-bottom: 1px solid #dbe3ef;
+        color: #1e3a8a;
+        font-size: 19px;
+        margin: 26px 0 12px;
+        padding-bottom: 6px;
+      }
+      h3 {
+        font-size: 15px;
+        margin: 16px 0 6px;
+      }
+      p { margin: 0 0 9px; }
+      ul, ol { margin: 8px 0 12px 22px; padding: 0; }
+      li { margin: 5px 0; }
+      .subtitle {
+        color: #475569;
+        font-size: 15px;
+        max-width: 680px;
+      }
+      .meta {
+        color: #64748b;
+        font-size: 12px;
+        margin-top: 18px;
+      }
+      .grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .card {
+        background: #f8fafc;
+        border: 1px solid #dbe3ef;
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .card strong { color: #0f172a; }
+      .flow {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        color: #1e3a8a;
+        font-weight: 700;
+        margin: 14px 0;
+        padding: 12px;
+      }
+      .step {
+        border-left: 4px solid #1d4ed8;
+        margin: 14px 0;
+        padding: 4px 0 4px 12px;
+      }
+      .tag {
+        background: #dbeafe;
+        border-radius: 999px;
+        color: #1d4ed8;
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 800;
+        margin-right: 6px;
+        padding: 3px 8px;
+        text-transform: uppercase;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 12px;
+        margin: 10px 0 16px;
+        width: 100%;
+      }
+      th, td {
+        border: 1px solid #dbe3ef;
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f1f5f9;
+        color: #334155;
+      }
+      .note {
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 8px;
+        color: #7c2d12;
+        margin-top: 12px;
+        padding: 10px;
+      }
+      .page-break { break-before: page; }
+      code {
+        background: #f1f5f9;
+        border-radius: 4px;
+        font-family: Consolas, monospace;
+        padding: 1px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="cover">
+      <div class="brand">
+        <span class="mark">CP</span>
+        <span class="brand-name">ChantierProof</span>
+      </div>
+      <h1>Workflow complet de l'application</h1>
+      <p class="subtitle">
+        Micro-SaaS B2B mobile-first permettant a une PME de securiser la facturation
+        d'une intervention terrain grace aux photos, a la geolocalisation, a la signature
+        client et a un PDF de preuve transmis a la comptabilite.
+      </p>
+      <p class="meta">Document partageable - version MVP actuelle</p>
+    </section>
+
+    <h2>1. Objectif du produit</h2>
+    <p>
+      ChantierProof sert a transformer une intervention terrain en preuve exploitable :
+      l'entreprise cree un lien, le technicien renseigne les elements de preuve sur mobile,
+      le client signe, puis un PDF horodate et rattache au dossier peut etre envoye a la
+      comptabilite pour declencher la facturation.
+    </p>
+
+    <div class="flow">
+      Admin cree le lien -> Technicien renseigne la preuve -> Client signe -> PDF genere
+      -> Comptabilite consulte ou telecharge -> Facturation
+    </div>
+
+    <h2>2. Roles de l'application</h2>
+    <div class="grid">
+      <div class="card">
+        <strong>Administrateur</strong>
+        <p>Cree les comptes, invite les equipes, genere les liens de validation et suit les dossiers.</p>
+      </div>
+      <div class="card">
+        <strong>Technicien / equipe terrain</strong>
+        <p>Ouvre le lien terrain, ajoute les photos, la position GPS, les commentaires et fait signer le client.</p>
+      </div>
+      <div class="card">
+        <strong>Comptable</strong>
+        <p>Recoit les validations envoyees, visualise le detail et telecharge le PDF pour facturer.</p>
+      </div>
+      <div class="card">
+        <strong>Client signataire</strong>
+        <p>Valide l'intervention sur smartphone par son nom, son consentement et sa signature manuscrite.</p>
+      </div>
+    </div>
+
+    <h2>3. Workflow d'acces et de comptes</h2>
+    <div class="step">
+      <h3><span class="tag">01</span>Connexion</h3>
+      <p>
+        Les utilisateurs accedent a <code>login.html</code>. Ils se connectent avec leur email
+        et mot de passe Supabase Auth.
+      </p>
+    </div>
+    <div class="step">
+      <h3><span class="tag">02</span>Invitation d'un compte</h3>
+      <p>
+        L'administrateur cree une invitation depuis <code>users.html</code> en definissant
+        le nom, l'email, le role et l'equipe. Le collaborateur active ensuite l'invitation
+        depuis l'ecran de connexion.
+      </p>
+    </div>
+    <div class="step">
+      <h3><span class="tag">03</span>Profil utilisateur</h3>
+      <p>
+        Chaque compte peut modifier son nom, son equipe et ajouter ou changer sa photo de profil
+        depuis <code>profile.html</code>.
+      </p>
+    </div>
+
+    <h2>4. Workflow administrateur</h2>
+    <ol>
+      <li>L'admin ouvre le dashboard <code>dashboard.html</code>.</li>
+      <li>Il consulte le compteur des chantiers valides ce mois-ci.</li>
+      <li>Il filtre la liste par statut : tous, en attente, valide, litige.</li>
+      <li>Il clique sur <strong>Nouveau lien de validation</strong>.</li>
+      <li>Il renseigne le client, son numero, l'objet de l'intervention et le tarif.</li>
+      <li>L'application cree une ligne <code>validations</code> en statut <code>pending</code>.</li>
+      <li>Un lien terrain est genere et peut etre copie, partage ou scanne via QR code.</li>
+    </ol>
+
+    <h2>5. Workflow terrain mobile</h2>
+    <p>
+      Le technicien ouvre le lien genere sur smartphone. La page <code>v/validation.html</code>
+      affiche le client et l'objet de l'intervention.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Element</th>
+          <th>Usage terrain</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Photo avant</td>
+          <td>Capture directe via camera ou import depuis le telephone.</td>
+        </tr>
+        <tr>
+          <td>Photo apres</td>
+          <td>Ajoutee plus tard si l'intervention dure plus longtemps que prevu.</td>
+        </tr>
+        <tr>
+          <td>Position GPS</td>
+          <td>Renseignee par le technicien sur site, car c'est lui qui se trouve chez le client.</td>
+        </tr>
+        <tr>
+          <td>Nom technicien/equipe</td>
+          <td>Identifie l'intervenant responsable de l'operation.</td>
+        </tr>
+        <tr>
+          <td>Commentaire technicien</td>
+          <td>Precise les details utiles : contraintes, remarques, etat du chantier.</td>
+        </tr>
+        <tr>
+          <td>Signature client</td>
+          <td>Signature manuscrite tactile sur canvas, avec nom du signataire et consentement.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="step">
+      <h3><span class="tag">Scellement</span>Valider et sceller l'intervention</h3>
+      <p>
+        Quand le formulaire est complet, le bouton de validation enregistre les photos, la signature
+        et les champs terrain dans Supabase. Le statut passe de <code>pending</code> a <code>signed</code>.
+      </p>
+    </div>
+
+    <h2 class="page-break">6. Workflow PDF et comptabilite</h2>
+    <ol>
+      <li>Apres signature, le technicien arrive sur <code>v/success.html</code>.</li>
+      <li>Il clique sur <strong>Generer et envoyer au comptable</strong>.</li>
+      <li>L'application genere un PDF avec les informations du chantier, les photos, la signature et les dates.</li>
+      <li>Le PDF est stocke dans le bucket <code>validation-assets</code>.</li>
+      <li>La validation est mise a jour avec <code>pdf_url</code>, <code>accounting_status</code> et <code>sent_to_accounting_at</code>.</li>
+      <li>Le comptable retrouve le dossier depuis le dashboard et ouvre le detail.</li>
+      <li>Depuis <code>validation-detail.html</code>, il peut visualiser ou telecharger le PDF.</li>
+    </ol>
+
+    <div class="note">
+      Note MVP : l'envoi au comptable signifie que le PDF devient disponible dans l'interface comptable
+      et que le statut comptabilite change. Une notification email automatique peut etre ajoutee ensuite
+      via Supabase Edge Functions ou un service email.
+    </div>
+
+    <h2>7. Ecrans principaux</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Ecran</th>
+          <th>Fichier</th>
+          <th>Fonction</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Connexion</td>
+          <td><code>login.html</code></td>
+          <td>Connexion et activation d'invitation.</td>
+        </tr>
+        <tr>
+          <td>Dashboard</td>
+          <td><code>dashboard.html</code></td>
+          <td>Liste, filtres, creation de lien, suivi comptable.</td>
+        </tr>
+        <tr>
+          <td>Utilisateurs</td>
+          <td><code>users.html</code></td>
+          <td>Creation d'invitations par l'admin.</td>
+        </tr>
+        <tr>
+          <td>Profil</td>
+          <td><code>profile.html</code></td>
+          <td>Modification du profil et de l'avatar.</td>
+        </tr>
+        <tr>
+          <td>Validation terrain</td>
+          <td><code>v/validation.html</code></td>
+          <td>Preuves terrain, photos, GPS, commentaires, signature.</td>
+        </tr>
+        <tr>
+          <td>Succes</td>
+          <td><code>v/success.html</code></td>
+          <td>Confirmation et generation/envoi du PDF a la comptabilite.</td>
+        </tr>
+        <tr>
+          <td>Detail validation</td>
+          <td><code>validation-detail.html</code></td>
+          <td>Lecture du dossier, photos, signature, statut et PDF.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>8. Donnees et stockage Supabase</h2>
+    <h3>Table principale : <code>validations</code></h3>
+    <p>
+      Elle contient le client, le numero, l'intervention, le tarif, le GPS, le statut,
+      les URLs de photos, la signature, le nom du signataire, les notes du technicien,
+      le PDF et le statut comptabilite.
+    </p>
+
+    <h3>Buckets Storage</h3>
+    <ul>
+      <li><code>validation-assets</code> : photos, signatures et PDF de preuve.</li>
+      <li><code>profile-avatars</code> : photos de profil des utilisateurs.</li>
+    </ul>
+
+    <h3>Securite MVP</h3>
+    <ul>
+      <li>Les utilisateurs authentifies peuvent gerer les validations.</li>
+      <li>Le lien public terrain peut lire une validation en attente et la sceller.</li>
+      <li>Les invitations et profils sont controles par les roles.</li>
+    </ul>
+
+    <h2>9. Etats d'une validation</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Statut</th>
+          <th>Signification</th>
+          <th>Action suivante</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>pending</code></td>
+          <td>Le lien est cree, le terrain n'a pas encore scelle l'intervention.</td>
+          <td>Le technicien complete le formulaire et fait signer.</td>
+        </tr>
+        <tr>
+          <td><code>signed</code></td>
+          <td>L'intervention est signee et verrouillee comme preuve.</td>
+          <td>Generer et envoyer le PDF a la comptabilite.</td>
+        </tr>
+        <tr>
+          <td><code>sent_to_accounting</code></td>
+          <td>Le PDF a ete mis a disposition de la comptabilite.</td>
+          <td>Le comptable telecharge ou visualise le PDF pour facturer.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>10. Parcours partageable en une phrase</h2>
+    <p>
+      ChantierProof permet a une PME de creer un lien d'intervention, de collecter sur mobile
+      les preuves terrain et la signature client, puis de transmettre un PDF horodate a la
+      comptabilite pour securiser et accelerer la facturation.
+    </p>
+  </body>
+</html>
