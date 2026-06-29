@@ -123,7 +123,12 @@
         <td class="px-4 py-3">${statusBadge(row.status)}</td>
         <td class="px-4 py-3 text-slate-600">${formatPrice(row.intervention_price)}</td>
         <td class="px-4 py-3 text-slate-600">${window.ChantierProof.formatDate(row.created_at)}</td>
-        <td class="px-4 py-3"><a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Ouvrir</a></td>
+        <td class="px-4 py-3">
+          <div class="row-actions">
+            <a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Detail</a>
+            <a class="text-blue-700 font-semibold" href="${validationUrl(row.id)}">Photos / signature</a>
+          </div>
+        </td>
       </tr>
     `).join("");
 

@@ -11,6 +11,7 @@
   const beforeEl = document.getElementById("detail-before");
   const afterEl = document.getElementById("detail-after");
   const errorEl = document.getElementById("detail-error");
+  const fieldLink = document.getElementById("detail-field-link");
 
   function showError(message) {
     errorEl.textContent = message;
@@ -35,6 +36,10 @@
   function mapUrl(gpsPosition) {
     if (!gpsPosition) return null;
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gpsPosition)}`;
+  }
+
+  function validationUrl(validationId) {
+    return new URL(`./v/validation.html?id=${encodeURIComponent(validationId)}`, window.location.href).href;
   }
 
   async function resolveImageUrl(client, path) {
@@ -73,9 +78,15 @@
       if (response.error) throw response.error;
 
       const row = response.data;
+      fieldLink.href = validationUrl(row.id);
       clientEl.textContent = row.client_name || "-";
       titleEl.textContent = row.intervention_title || "-";
       statusEl.innerHTML = statusBadge(row.status);
+      if (row.status === "signed") {
+        fieldLink.innerHTML = '<i data-lucide="eye" class="icon"></i>Voir le formulaire';
+        fieldLink.classList.remove("btn-primary");
+        fieldLink.classList.add("btn-secondary");
+      }
       priceEl.textContent = formatPrice(row.intervention_price);
       gpsEl.textContent = row.gps_position || "-";
       signerEl.textContent = row.signer_name || "Non signe";
@@ -89,6 +100,7 @@
 
       await renderImage(client, beforeEl, row.photo_before_url, "Photo avant intervention");
       await renderImage(client, afterEl, row.photo_after_url, "Photo apres intervention");
+      window.lucide?.createIcons();
     } catch (error) {
       console.error("Load validation detail failed:", error);
       clientEl.textContent = "Detail indisponible";
