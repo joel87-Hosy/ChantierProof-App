@@ -11,6 +11,7 @@ create table if not exists public.validations (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   client_name text not null,
+  client_phone text,
   intervention_title text not null,
   intervention_price numeric(12, 2),
   gps_position text,
@@ -18,13 +19,18 @@ create table if not exists public.validations (
   photo_before_url text,
   photo_after_url text,
   signature_png_url text,
+  technician_name text,
+  technician_notes text,
   signer_name text,
   signed_at timestamptz
 );
 
 alter table public.validations
   add column if not exists intervention_price numeric(12, 2),
-  add column if not exists gps_position text;
+  add column if not exists gps_position text,
+  add column if not exists client_phone text,
+  add column if not exists technician_name text,
+  add column if not exists technician_notes text;
 
 create index if not exists validations_status_idx
   on public.validations (status);

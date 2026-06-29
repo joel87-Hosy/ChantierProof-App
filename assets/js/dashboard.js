@@ -27,6 +27,7 @@
   const useGpsButton = document.getElementById("use-current-gps");
   const modalError = document.getElementById("new-validation-error");
   const clientNameInput = document.getElementById("new-client-name");
+  const clientPhoneInput = document.getElementById("new-client-phone");
   const interventionTitleInput = document.getElementById("new-intervention-title");
   const interventionPriceInput = document.getElementById("new-intervention-price");
   const gpsPositionInput = document.getElementById("new-gps-position");
@@ -123,12 +124,8 @@
         <td class="px-4 py-3">${statusBadge(row.status)}</td>
         <td class="px-4 py-3 text-slate-600">${formatPrice(row.intervention_price)}</td>
         <td class="px-4 py-3 text-slate-600">${window.ChantierProof.formatDate(row.created_at)}</td>
-        <td class="px-4 py-3">
-          <div class="row-actions">
-            <a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Detail</a>
-            <a class="text-blue-700 font-semibold" href="${validationUrl(row.id)}">Photos / signature</a>
-          </div>
-        </td>
+        <td class="px-4 py-3"><a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Ouvrir</a></td>
+        <td class="px-4 py-3">${fieldAction(row)}</td>
       </tr>
     `).join("");
 
@@ -138,6 +135,14 @@
       const now = new Date();
       return signedAt.getMonth() === now.getMonth() && signedAt.getFullYear() === now.getFullYear();
     }).length;
+  }
+
+  function fieldAction(row) {
+    if (row.status === "signed") {
+      return '<span class="text-slate-500">Déjà validé</span>';
+    }
+
+    return `<a class="text-blue-700 font-semibold" href="${validationUrl(row.id)}">Photos / signature</a>`;
   }
 
   async function loadRows() {
@@ -161,6 +166,7 @@
     clearModalError();
 
     const clientName = clientNameInput.value.trim();
+    const clientPhone = clientPhoneInput.value.trim() || null;
     const interventionTitle = interventionTitleInput.value.trim();
     const price = interventionPriceInput.value ? Number(interventionPriceInput.value) : null;
     const gpsPosition = gpsPositionInput.value.trim() || null;
@@ -176,6 +182,7 @@
         .from("validations")
         .insert({
           client_name: clientName,
+          client_phone: clientPhone,
           intervention_title: interventionTitle,
           intervention_price: price,
           gps_position: gpsPosition

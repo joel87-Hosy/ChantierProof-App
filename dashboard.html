@@ -67,7 +67,8 @@
                 <th class="px-4 py-3">Statut</th>
                 <th class="px-4 py-3">Tarif</th>
                 <th class="px-4 py-3">Créé le</th>
-                <th class="px-4 py-3">Lien</th>
+                <th class="px-4 py-3">Détail</th>
+                <th class="px-4 py-3">Validation terrain</th>
               </tr>
             </thead>
             <tbody id="validations-table"></tbody>
@@ -92,6 +93,10 @@
           <label class="block">
             <span class="label">Nom du client</span>
             <input id="new-client-name" class="input mt-2" type="text" required>
+          </label>
+          <label class="block">
+            <span class="label">Numéro du client</span>
+            <input id="new-client-phone" class="input mt-2" type="tel" inputmode="tel" placeholder="Ex: +225 07 00 00 00 00">
           </label>
           <label class="block">
             <span class="label">Tarif de l'intervention</span>

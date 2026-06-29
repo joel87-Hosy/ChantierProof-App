@@ -4,7 +4,10 @@
   const titleEl = document.getElementById("detail-title");
   const statusEl = document.getElementById("detail-status");
   const priceEl = document.getElementById("detail-price");
+  const clientPhoneEl = document.getElementById("detail-client-phone");
   const gpsEl = document.getElementById("detail-gps");
+  const technicianEl = document.getElementById("detail-technician");
+  const notesEl = document.getElementById("detail-notes");
   const mapLink = document.getElementById("detail-map-link");
   const signerEl = document.getElementById("detail-signer");
   const signedAtEl = document.getElementById("detail-signed-at");
@@ -88,7 +91,10 @@
         fieldLink.classList.add("btn-secondary");
       }
       priceEl.textContent = formatPrice(row.intervention_price);
+      clientPhoneEl.textContent = row.client_phone || "-";
       gpsEl.textContent = row.gps_position || "-";
+      technicianEl.textContent = row.technician_name || "-";
+      notesEl.textContent = row.technician_notes || "Aucun commentaire pour le moment";
       signerEl.textContent = row.signer_name || "Non signe";
       signedAtEl.textContent = row.signed_at ? window.ChantierProof.formatDate(row.signed_at) : "En attente de validation";
 

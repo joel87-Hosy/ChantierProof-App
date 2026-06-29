@@ -18,19 +18,52 @@
         <section class="panel">
           <h2 class="text-lg font-semibold">Photos terrain</h2>
           <div class="mt-4 grid gap-4 sm-grid-cols-2">
-            <label class="upload-box">
+            <div class="upload-box">
               <i data-lucide="camera" class="upload-icon"></i>
               <span class="font-semibold">Photo avant</span>
-              <span id="photo-before-name" class="mt-1 text-sm text-slate-500">Caméra requise</span>
-              <input id="photo-before" class="sr-only" type="file" accept="image/*" capture="environment">
-            </label>
-            <label class="upload-box">
+              <span id="photo-before-name" class="mt-1 text-sm text-slate-500">Aucune image selectionnee</span>
+              <div class="mt-4 grid gap-2">
+                <label class="btn btn-secondary btn-sm">
+                  <i data-lucide="camera" class="icon"></i>
+                  Prendre une photo
+                  <input id="photo-before-camera" class="sr-only" type="file" accept="image/*" capture="environment">
+                </label>
+                <label class="btn btn-secondary btn-sm">
+                  <i data-lucide="image-plus" class="icon"></i>
+                  Importer une image
+                  <input id="photo-before-import" class="sr-only" type="file" accept="image/*">
+                </label>
+              </div>
+            </div>
+            <div class="upload-box">
               <i data-lucide="camera" class="upload-icon"></i>
-              <span class="font-semibold">Photo après</span>
-              <span id="photo-after-name" class="mt-1 text-sm text-slate-500">Caméra requise</span>
-              <input id="photo-after" class="sr-only" type="file" accept="image/*" capture="environment">
-            </label>
+              <span class="font-semibold">Photo apres</span>
+              <span id="photo-after-name" class="mt-1 text-sm text-slate-500">Aucune image selectionnee</span>
+              <div class="mt-4 grid gap-2">
+                <label class="btn btn-secondary btn-sm">
+                  <i data-lucide="camera" class="icon"></i>
+                  Prendre une photo
+                  <input id="photo-after-camera" class="sr-only" type="file" accept="image/*" capture="environment">
+                </label>
+                <label class="btn btn-secondary btn-sm">
+                  <i data-lucide="image-plus" class="icon"></i>
+                  Importer une image
+                  <input id="photo-after-import" class="sr-only" type="file" accept="image/*">
+                </label>
+              </div>
+            </div>
           </div>
+        </section>
+
+        <section class="panel space-y-4">
+          <label class="block">
+            <span class="label">Technicien ou equipe intervenante</span>
+            <input id="technician-name" class="input mt-2" type="text" autocomplete="organization" required>
+          </label>
+          <label class="block">
+            <span class="label">Commentaire d'intervention</span>
+            <textarea id="technician-notes" class="input textarea mt-2" rows="5" placeholder="Travaux realises, contraintes, reserves, pieces remplacees..."></textarea>
+          </label>
         </section>
 
         <section class="panel">
@@ -51,7 +84,7 @@
           </label>
           <label class="flex items-start gap-3 text-sm leading-6 text-slate-700">
             <input id="legal-consent" class="checkbox mt-1" type="checkbox" required>
-            <span>Je confirme que les travaux présentés correspondent à l'intervention réalisée et j'autorise l'utilisation de cette validation pour la facturation.</span>
+            <span>Je confirme que les travaux presentes correspondent a l'intervention realisee et j'autorise l'utilisation de cette validation pour la facturation.</span>
           </label>
         </section>
 
