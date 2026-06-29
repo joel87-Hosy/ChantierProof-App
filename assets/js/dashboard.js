@@ -1,16 +1,4 @@
 (function () {
-  const fallbackRows = [
-    {
-      id: "demo",
-      client_name: "Client demo",
-      intervention_title: "Remise en etat tableau electrique",
-      intervention_price: 250,
-      gps_position: "5.3600, -4.0083",
-      status: "pending",
-      created_at: new Date().toISOString()
-    }
-  ];
-
   const table = document.getElementById("validations-table");
   const count = document.getElementById("signed-month-count");
   const linkInput = document.getElementById("generated-link");
@@ -24,13 +12,11 @@
   const form = document.getElementById("new-validation-form");
   const closeDialogButton = document.getElementById("close-validation-dialog");
   const cancelDialogButton = document.getElementById("cancel-validation-dialog");
-  const useGpsButton = document.getElementById("use-current-gps");
   const modalError = document.getElementById("new-validation-error");
   const clientNameInput = document.getElementById("new-client-name");
   const clientPhoneInput = document.getElementById("new-client-phone");
   const interventionTitleInput = document.getElementById("new-intervention-title");
   const interventionPriceInput = document.getElementById("new-intervention-price");
-  const gpsPositionInput = document.getElementById("new-gps-position");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
 
   let rows = [];
@@ -117,7 +103,14 @@
 
   function render() {
     const visibleRows = activeFilter === "all" ? rows : rows.filter((row) => row.status === activeFilter);
-    table.innerHTML = visibleRows.map((row) => `
+    if (!visibleRows.length) {
+      table.innerHTML = `
+        <tr>
+          <td class="px-4 py-3 text-slate-500" colspan="7">Aucune validation pour le moment.</td>
+        </tr>
+      `;
+    } else {
+      table.innerHTML = visibleRows.map((row) => `
       <tr class="border-b">
         <td class="px-4 py-3 font-medium">${row.client_name || "-"}</td>
         <td class="px-4 py-3 text-slate-600">${row.intervention_title || "-"}</td>
@@ -127,7 +120,8 @@
         <td class="px-4 py-3"><a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Ouvrir</a></td>
         <td class="px-4 py-3">${fieldAction(row)}</td>
       </tr>
-    `).join("");
+      `).join("");
+    }
 
     count.textContent = rows.filter((row) => {
       if (row.status !== "signed" || !row.signed_at) return false;
@@ -153,9 +147,12 @@
         .select("*")
         .order("created_at", { ascending: false });
 
-      rows = response.error ? fallbackRows : response.data;
+      if (response.error) throw response.error;
+      rows = response.data || [];
     } catch (error) {
-      rows = fallbackRows;
+      console.error("Load validations failed:", error);
+      rows = [];
+      showError(`Impossible de charger les validations : ${error.message || "verifie Supabase."}`);
     }
     render();
   }
@@ -169,7 +166,6 @@
     const clientPhone = clientPhoneInput.value.trim() || null;
     const interventionTitle = interventionTitleInput.value.trim();
     const price = interventionPriceInput.value ? Number(interventionPriceInput.value) : null;
-    const gpsPosition = gpsPositionInput.value.trim() || null;
 
     if (!clientName || !interventionTitle) {
       showModalError("Renseigne le client et l'objet de l'intervention.");
@@ -184,8 +180,7 @@
           client_name: clientName,
           client_phone: clientPhone,
           intervention_title: interventionTitle,
-          intervention_price: price,
-          gps_position: gpsPosition
+          intervention_price: price
         })
         .select("id")
         .single();
@@ -212,31 +207,6 @@
   closeDialogButton.addEventListener("click", closeDialog);
   cancelDialogButton.addEventListener("click", closeDialog);
   form.addEventListener("submit", createValidation);
-
-  useGpsButton.addEventListener("click", () => {
-    clearModalError();
-    if (!navigator.geolocation) {
-      showModalError("La geolocalisation n'est pas disponible dans ce navigateur.");
-      return;
-    }
-
-    useGpsButton.disabled = true;
-    useGpsButton.textContent = "Localisation...";
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        gpsPositionInput.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-        restoreButtonIcon(useGpsButton, "map-pin", "Utiliser ma position");
-        useGpsButton.disabled = false;
-      },
-      (error) => {
-        showModalError(`Position GPS indisponible : ${error.message}`);
-        restoreButtonIcon(useGpsButton, "map-pin", "Utiliser ma position");
-        useGpsButton.disabled = false;
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
-  });
 
   copyButton.addEventListener("click", async () => {
     if (!linkInput.value) return;

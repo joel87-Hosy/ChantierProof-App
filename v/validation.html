@@ -9,7 +9,10 @@
   <body class="min-h-screen bg-slate-50 text-slate-950">
     <main class="mx-auto w-full max-w-xl px-4 py-5">
       <header class="mb-5">
-        <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Validation intervention</p>
+        <div class="brand-lockup">
+          <span class="brand-mark">CP</span>
+          <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Validation intervention</p>
+        </div>
         <h1 id="client-name" class="mt-2 text-3xl font-bold">Chargement...</h1>
         <p id="intervention-title" class="mt-2 text-slate-600"></p>
       </header>
@@ -59,6 +62,16 @@
           <label class="block">
             <span class="label">Technicien ou equipe intervenante</span>
             <input id="technician-name" class="input mt-2" type="text" autocomplete="organization" required>
+          </label>
+          <label class="block">
+            <span class="label">Position GPS sur site</span>
+            <div class="mt-2 flex flex-col gap-2 md-flex-row">
+              <input id="field-gps-position" class="input min-w-0 flex-1" type="text" placeholder="Ex: 5.3600, -4.0083" required>
+              <button id="capture-field-gps" class="btn btn-secondary" type="button">
+                <i data-lucide="map-pin" class="icon"></i>
+                Capturer ma position
+              </button>
+            </div>
           </label>
           <label class="block">
             <span class="label">Commentaire d'intervention</span>

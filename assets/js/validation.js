@@ -11,6 +11,8 @@
   const beforeName = document.getElementById("photo-before-name");
   const afterName = document.getElementById("photo-after-name");
   const technicianNameInput = document.getElementById("technician-name");
+  const fieldGpsInput = document.getElementById("field-gps-position");
+  const captureGpsButton = document.getElementById("capture-field-gps");
   const technicianNotesInput = document.getElementById("technician-notes");
   const signerInput = document.getElementById("signer-name");
   const consentInput = document.getElementById("legal-consent");
@@ -31,6 +33,11 @@
     if (!file) return;
     assignFile(file);
     target.textContent = file.name;
+  }
+
+  function restoreButtonIcon(button, icon, label) {
+    button.innerHTML = `<i data-lucide="${icon}" class="icon"></i>${label}`;
+    window.lucide?.createIcons();
   }
 
   async function loadValidation() {
@@ -82,6 +89,10 @@
       showError("Renseigne le nom du technicien ou de l'equipe.");
       return;
     }
+    if (!fieldGpsInput.value.trim()) {
+      showError("Renseigne ou capture la position GPS du site.");
+      return;
+    }
     if (signature.isEmpty()) {
       showError("La signature est obligatoire.");
       return;
@@ -108,6 +119,7 @@
         photo_after_url: afterPath,
         signature_png_url: signaturePath,
         technician_name: technicianNameInput.value.trim(),
+        gps_position: fieldGpsInput.value.trim(),
         technician_notes: technicianNotesInput.value.trim() || null,
         signer_name: signerInput.value.trim(),
         signed_at: new Date().toISOString()
@@ -129,6 +141,30 @@
   beforeImportInput.addEventListener("change", () => setFileName(beforeImportInput, beforeName, (file) => { beforeFile = file; }));
   afterCameraInput.addEventListener("change", () => setFileName(afterCameraInput, afterName, (file) => { afterFile = file; }));
   afterImportInput.addEventListener("change", () => setFileName(afterImportInput, afterName, (file) => { afterFile = file; }));
+  captureGpsButton.addEventListener("click", () => {
+    errorBox.classList.add("hidden");
+    if (!navigator.geolocation) {
+      showError("La geolocalisation n'est pas disponible dans ce navigateur.");
+      return;
+    }
+
+    captureGpsButton.disabled = true;
+    captureGpsButton.textContent = "Localisation...";
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fieldGpsInput.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        restoreButtonIcon(captureGpsButton, "map-pin", "Capturer ma position");
+        captureGpsButton.disabled = false;
+      },
+      (error) => {
+        showError(`Position GPS indisponible : ${error.message}`);
+        restoreButtonIcon(captureGpsButton, "map-pin", "Capturer ma position");
+        captureGpsButton.disabled = false;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  });
   document.getElementById("clear-signature").addEventListener("click", () => signature.clear());
 
   loadValidation();
