@@ -25,12 +25,53 @@ create table if not exists public.validations (
   signed_at timestamptz
 );
 
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'app_role') then
+    create type public.app_role as enum ('admin', 'accountant', 'technician', 'manager');
+  end if;
+end $$;
+
+create table if not exists public.teams (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text not null unique
+);
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  email text,
+  full_name text,
+  role public.app_role not null default 'technician',
+  team_id uuid references public.teams(id) on delete set null,
+  team_name text,
+  avatar_url text
+);
+
+create table if not exists public.user_invitations (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  email text not null,
+  full_name text not null,
+  role public.app_role not null default 'technician',
+  team_id uuid references public.teams(id) on delete set null,
+  team_name text,
+  token uuid not null default gen_random_uuid(),
+  invited_by uuid references auth.users(id) on delete set null,
+  accepted_at timestamptz,
+  unique (token)
+);
+
 alter table public.validations
   add column if not exists intervention_price numeric(12, 2),
   add column if not exists gps_position text,
   add column if not exists client_phone text,
   add column if not exists technician_name text,
-  add column if not exists technician_notes text;
+  add column if not exists technician_notes text,
+  add column if not exists created_by uuid references auth.users(id) on delete set null,
+  add column if not exists assigned_team_id uuid references public.teams(id) on delete set null,
+  add column if not exists assigned_technician_id uuid references auth.users(id) on delete set null;
 
 create index if not exists validations_status_idx
   on public.validations (status);

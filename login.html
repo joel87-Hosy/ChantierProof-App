@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connexion | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen text-slate-950">
+    <main class="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-4 py-8">
+      <section class="panel">
+        <div class="brand-lockup">
+          <span class="brand-mark">CP</span>
+          <span class="text-sm font-semibold uppercase tracking-wide text-blue-700">ChantierProof</span>
+        </div>
+        <h1 id="auth-title" class="mt-5 text-3xl font-bold">Connexion</h1>
+        <p id="auth-copy" class="mt-2 text-slate-600">Accedez au dashboard de votre entreprise.</p>
+
+        <div class="segmented mt-5" role="tablist" aria-label="Mode d'authentification">
+          <button id="login-tab" class="segmented-btn active" type="button">Connexion</button>
+          <button id="invite-tab" class="segmented-btn" type="button">Activer une invitation</button>
+        </div>
+
+        <form id="auth-form" class="mt-5 space-y-4">
+          <label id="invite-token-field" class="block hidden">
+            <span class="label">Code d'invitation</span>
+            <input id="invite-token" class="input mt-2" type="text" autocomplete="off">
+          </label>
+          <label class="block">
+            <span class="label">Email</span>
+            <input id="email" class="input mt-2" type="email" autocomplete="email" required>
+          </label>
+          <label class="block">
+            <span class="label">Mot de passe</span>
+            <input id="password" class="input mt-2" type="password" autocomplete="current-password" minlength="6" required>
+          </label>
+
+          <p id="auth-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+          <p id="auth-success" class="hidden rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></p>
+
+          <button id="auth-submit" class="btn btn-primary w-full" type="submit">
+            <i data-lucide="log-in" class="icon"></i>
+            Se connecter
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./lib/config.js"></script>
+    <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/auth.js"></script>
+  </body>
+</html>

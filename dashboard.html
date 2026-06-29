@@ -16,10 +16,27 @@
           </div>
           <h1 class="mt-1 text-3xl font-bold">Validations</h1>
         </div>
-        <button id="new-validation-btn" class="btn btn-primary" type="button">
-          <i data-lucide="plus" class="icon"></i>
-          Nouveau lien de validation
-        </button>
+        <div class="flex flex-col gap-2 md-items-end">
+          <div id="user-chip" class="user-chip hidden"></div>
+          <div class="flex flex-col gap-2 md-flex-row">
+            <a id="profile-link" class="btn btn-secondary" href="./profile.html">
+              <i data-lucide="user" class="icon"></i>
+              Mon profil
+            </a>
+            <a id="users-link" class="btn btn-secondary hidden" href="./users.html">
+              <i data-lucide="users" class="icon"></i>
+              Utilisateurs
+            </a>
+            <button id="logout-btn" class="btn btn-secondary" type="button">
+              <i data-lucide="log-out" class="icon"></i>
+              Déconnexion
+            </button>
+            <button id="new-validation-btn" class="btn btn-primary" type="button">
+              <i data-lucide="plus" class="icon"></i>
+              Nouveau lien de validation
+            </button>
+          </div>
+        </div>
       </header>
 
       <section class="mt-6 grid gap-4 md-grid-cols-3">

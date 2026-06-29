@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mon profil | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <main class="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-4 py-8">
+      <section class="panel">
+        <a class="back-link" href="./dashboard.html"><i data-lucide="arrow-left" class="icon"></i>Dashboard</a>
+        <h1 class="mt-5 text-3xl font-bold">Mon profil</h1>
+        <form id="profile-form" class="mt-5 space-y-4">
+          <div class="profile-avatar">
+            <img id="avatar-preview" class="avatar-img hidden" alt="Photo de profil">
+            <span id="avatar-placeholder">CP</span>
+          </div>
+          <label class="block">
+            <span class="label">Photo de profil</span>
+            <input id="avatar-file" class="input mt-2" type="file" accept="image/*">
+          </label>
+          <label class="block">
+            <span class="label">Nom complet</span>
+            <input id="profile-full-name" class="input mt-2" type="text" required>
+          </label>
+          <label class="block">
+            <span class="label">Email</span>
+            <input id="profile-email" class="input mt-2" type="email" disabled>
+          </label>
+          <label class="block">
+            <span class="label">Role</span>
+            <input id="profile-role" class="input mt-2" type="text" disabled>
+          </label>
+          <label class="block">
+            <span class="label">Equipe</span>
+            <input id="profile-team" class="input mt-2" type="text">
+          </label>
+          <p id="profile-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+          <p id="profile-success" class="hidden rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></p>
+          <button class="btn btn-primary w-full" type="submit">
+            <i data-lucide="save" class="icon"></i>
+            Enregistrer
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./lib/config.js"></script>
+    <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/profile.js"></script>
+  </body>
+</html>

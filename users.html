@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Utilisateurs | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 md-px-8">
+      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
+        <div>
+          <a class="back-link" href="./dashboard.html"><i data-lucide="arrow-left" class="icon"></i>Dashboard</a>
+          <h1 class="mt-2 text-3xl font-bold">Utilisateurs et equipes</h1>
+        </div>
+      </header>
+
+      <section class="mt-6 grid gap-4 md-grid-cols-3">
+        <form id="invite-form" class="panel md-col-span-1 space-y-4">
+          <h2 class="text-lg font-semibold">Inviter un compte</h2>
+          <label class="block">
+            <span class="label">Nom complet</span>
+            <input id="invite-full-name" class="input mt-2" type="text" required>
+          </label>
+          <label class="block">
+            <span class="label">Email</span>
+            <input id="invite-email" class="input mt-2" type="email" required>
+          </label>
+          <label class="block">
+            <span class="label">Role</span>
+            <select id="invite-role" class="input mt-2">
+              <option value="technician">Technicien</option>
+              <option value="accountant">Comptable</option>
+              <option value="manager">Manager terrain</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="label">Equipe</span>
+            <input id="invite-team" class="input mt-2" type="text" placeholder="Ex: Equipe maintenance">
+          </label>
+          <p id="invite-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+          <button class="btn btn-primary w-full" type="submit">
+            <i data-lucide="user-plus" class="icon"></i>
+            Creer l'invitation
+          </button>
+        </form>
+
+        <section class="panel md-col-span-2">
+          <h2 class="text-lg font-semibold">Invitations en attente</h2>
+          <div id="invite-link-box" class="hidden mt-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></div>
+          <div class="mt-4 table-shell">
+            <table class="w-full border-collapse text-left text-sm">
+              <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="px-4 py-3">Nom</th>
+                  <th class="px-4 py-3">Email</th>
+                  <th class="px-4 py-3">Role</th>
+                  <th class="px-4 py-3">Equipe</th>
+                  <th class="px-4 py-3">Code</th>
+                </tr>
+              </thead>
+              <tbody id="invitations-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./lib/config.js"></script>
+    <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/users.js"></script>
+  </body>
+</html>

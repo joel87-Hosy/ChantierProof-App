@@ -3,6 +3,9 @@
   const count = document.getElementById("signed-month-count");
   const linkInput = document.getElementById("generated-link");
   const newButton = document.getElementById("new-validation-btn");
+  const logoutButton = document.getElementById("logout-btn");
+  const userChip = document.getElementById("user-chip");
+  const usersLink = document.getElementById("users-link");
   const copyButton = document.getElementById("copy-link-btn");
   const shareButton = document.getElementById("share-link-btn");
   const qrPanel = document.getElementById("qr-panel");
@@ -21,6 +24,42 @@
 
   let rows = [];
   let activeFilter = "all";
+  let currentUser = null;
+  let currentProfile = null;
+
+  async function requireSession() {
+    const client = window.ChantierProof.getClient();
+    const sessionResponse = await client.auth.getSession();
+    const session = sessionResponse.data.session;
+
+    if (!session) {
+      window.location.href = "./login.html";
+      return false;
+    }
+
+    currentUser = session.user;
+    await loadProfile();
+    return true;
+  }
+
+  async function loadProfile() {
+    const client = window.ChantierProof.getClient();
+    const response = await client
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    if (!response.error) {
+      currentProfile = response.data;
+    }
+
+    const name = currentProfile?.full_name || currentUser.email;
+    const role = currentProfile?.role || "user";
+    userChip.textContent = `${name} · ${role}`;
+    userChip.classList.remove("hidden");
+    usersLink.classList.toggle("hidden", role !== "admin");
+  }
 
   function validationUrl(id) {
     return new URL(`./v/validation.html?id=${encodeURIComponent(id)}`, window.location.href).href;
@@ -180,7 +219,8 @@
           client_name: clientName,
           client_phone: clientPhone,
           intervention_title: interventionTitle,
-          intervention_price: price
+          intervention_price: price,
+          created_by: currentUser.id
         })
         .select("id")
         .single();
@@ -240,6 +280,14 @@
     shareButton.title = "Partage natif indisponible dans ce navigateur";
   }
 
+  logoutButton.addEventListener("click", async () => {
+    const client = window.ChantierProof.getClient();
+    await client.auth.signOut();
+    window.location.href = "./login.html";
+  });
+
   window.lucide?.createIcons();
-  loadRows();
+  requireSession().then((ok) => {
+    if (ok) loadRows();
+  });
 })();

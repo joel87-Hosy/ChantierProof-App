@@ -183,16 +183,15 @@ table { min-width: 960px; }
 .photo-preview { align-items: center; aspect-ratio: 4 / 3; background: var(--slate-100); border: 1px dashed var(--slate-400); border-radius: .5rem; color: var(--slate-500); display: flex; justify-content: center; overflow: hidden; padding: 1rem; text-align: center; }
 .photo-img { display: block; height: 100%; object-fit: cover; width: 100%; }
 .row-actions { align-items: flex-start; display: flex; flex-direction: column; gap: .35rem; }
+.user-chip { background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 9999px; color: var(--blue-700); font-size: .8rem; font-weight: 800; padding: .35rem .7rem; }
+.profile-avatar { align-items: center; background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 9999px; color: var(--blue-700); display: flex; font-size: 1.25rem; font-weight: 900; height: 6rem; justify-content: center; margin: 0 auto; overflow: hidden; width: 6rem; }
+.avatar-img { height: 100%; object-fit: cover; width: 100%; }
 .back-link { align-items: center; color: var(--blue-700); display: inline-flex; font-size: .875rem; font-weight: 700; gap: .45rem; }
 .back-link:hover { color: var(--blue-800); }
 .brand-lockup { align-items: center; display: inline-flex; gap: .7rem; }
 .brand-mark { align-items: center; background: var(--blue-700); border-radius: .5rem; color: #fff; display: inline-flex; font-size: .8rem; font-weight: 800; height: 2.35rem; justify-content: center; letter-spacing: .03em; width: 2.35rem; }
 .home-shell { position: relative; }
-.home-grid { align-items: center; display: grid; gap: 2rem; grid-template-columns: 1fr; }
-.home-preview { padding: 1rem; }
-.preview-row { align-items: center; display: flex; justify-content: space-between; gap: 1rem; }
-.preview-card { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: .5rem; padding: 1rem; }
-.preview-photo { align-items: center; aspect-ratio: 4 / 3; background: linear-gradient(135deg, var(--blue-50), #fff); border: 1px solid var(--blue-100); border-radius: .5rem; color: var(--blue-700); display: flex; font-weight: 800; justify-content: center; }
+.home-centered { margin-left: auto; margin-right: auto; max-width: 48rem; }
 
 main > header {
   background: rgba(255,255,255,.55);
@@ -215,7 +214,6 @@ main > header {
   .md-col-span-2 { grid-column: span 2 / span 2; }
   .segmented { width: auto; }
   .qr-panel { align-items: center; flex-direction: row; }
-  .home-grid { grid-template-columns: minmax(0, 1.1fr) minmax(20rem, .9fr); }
 }
 
 @media (max-width: 420px) {
