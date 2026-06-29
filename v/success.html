@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Intervention validée | ChantierProof</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <main class="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-4 py-8">
+      <section class="panel text-center">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-700">
+          <i data-lucide="check" class="success-icon"></i>
+        </div>
+        <h1 class="mt-5 text-3xl font-bold">Intervention validée</h1>
+        <p class="mt-3 text-slate-600">La validation a été scellée avec succès.</p>
+      </section>
+
+      <section class="panel mt-5">
+        <h2 class="text-lg font-semibold">Récapitulatif</h2>
+        <dl class="mt-4 space-y-3 text-sm">
+          <div class="flex justify-between gap-4">
+            <dt class="text-slate-500">Client</dt>
+            <dd id="recap-client" class="text-right font-medium">-</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-slate-500">Intervention</dt>
+            <dd id="recap-title" class="text-right font-medium">-</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-slate-500">Signataire</dt>
+            <dd id="recap-signer" class="text-right font-medium">-</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-slate-500">Date</dt>
+            <dd id="recap-date" class="text-right font-medium">-</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="../lib/config.js"></script>
+    <script src="../assets/js/supabase.js"></script>
+    <script src="../assets/js/success.js"></script>
+  </body>
+</html>

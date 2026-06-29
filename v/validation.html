@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Validation | ChantierProof</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <main class="mx-auto w-full max-w-xl px-4 py-5">
+      <header class="mb-5">
+        <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Validation intervention</p>
+        <h1 id="client-name" class="mt-2 text-3xl font-bold">Chargement...</h1>
+        <p id="intervention-title" class="mt-2 text-slate-600"></p>
+      </header>
+
+      <form id="validation-form" class="space-y-5">
+        <section class="panel">
+          <h2 class="text-lg font-semibold">Photos terrain</h2>
+          <div class="mt-4 grid gap-4 sm-grid-cols-2">
+            <label class="upload-box">
+              <i data-lucide="camera" class="upload-icon"></i>
+              <span class="font-semibold">Photo avant</span>
+              <span id="photo-before-name" class="mt-1 text-sm text-slate-500">Caméra requise</span>
+              <input id="photo-before" class="sr-only" type="file" accept="image/*" capture="environment">
+            </label>
+            <label class="upload-box">
+              <i data-lucide="camera" class="upload-icon"></i>
+              <span class="font-semibold">Photo après</span>
+              <span id="photo-after-name" class="mt-1 text-sm text-slate-500">Caméra requise</span>
+              <input id="photo-after" class="sr-only" type="file" accept="image/*" capture="environment">
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">Signature</h2>
+            <button id="clear-signature" class="btn btn-secondary btn-sm" type="button">
+              <i data-lucide="eraser" class="icon"></i>
+              Effacer
+            </button>
+          </div>
+          <canvas id="signature-canvas" class="mt-4 signature-canvas" width="640" height="260"></canvas>
+        </section>
+
+        <section class="panel space-y-4">
+          <label class="block">
+            <span class="label">Nom du signataire</span>
+            <input id="signer-name" class="input mt-2" type="text" autocomplete="name" required>
+          </label>
+          <label class="flex items-start gap-3 text-sm leading-6 text-slate-700">
+            <input id="legal-consent" class="checkbox mt-1" type="checkbox" required>
+            <span>Je confirme que les travaux présentés correspondent à l'intervention réalisée et j'autorise l'utilisation de cette validation pour la facturation.</span>
+          </label>
+        </section>
+
+        <p id="form-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+        <button id="seal-btn" class="btn btn-primary w-full" type="submit">
+          <i data-lucide="lock-keyhole" class="icon"></i>
+          Valider et Sceller l'intervention
+        </button>
+      </form>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="../lib/config.js"></script>
+    <script src="../assets/js/supabase.js"></script>
+    <script src="../assets/js/signature.js"></script>
+    <script src="../assets/js/validation.js"></script>
+  </body>
+</html>

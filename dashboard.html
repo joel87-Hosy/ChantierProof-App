@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-950">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 md-px-8">
+      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">ChantierProof</p>
+          <h1 class="mt-1 text-3xl font-bold">Validations</h1>
+        </div>
+        <button id="new-validation-btn" class="btn btn-primary" type="button">
+          <i data-lucide="plus" class="icon"></i>
+          Nouveau lien de validation
+        </button>
+      </header>
+
+      <section class="mt-6 grid gap-4 md-grid-cols-3">
+        <article class="panel">
+          <p class="text-sm text-slate-500">Validés ce mois-ci</p>
+          <div class="mt-2 flex items-center gap-3">
+            <i data-lucide="badge-check" class="metric-icon"></i>
+            <p id="signed-month-count" class="text-4xl font-bold">0</p>
+          </div>
+        </article>
+        <article class="panel md-col-span-2">
+          <p class="text-sm text-slate-500">Dernier lien généré</p>
+          <div class="mt-2 flex flex-col gap-2 md-flex-row">
+            <input id="generated-link" class="input flex-1" readonly placeholder="Aucun lien généré">
+            <button id="copy-link-btn" class="btn btn-secondary" type="button">
+              <i data-lucide="copy" class="icon"></i>
+              Copier
+            </button>
+            <button id="share-link-btn" class="btn btn-secondary" type="button">
+              <i data-lucide="share-2" class="icon"></i>
+              Partager
+            </button>
+          </div>
+          <div id="qr-panel" class="qr-panel hidden" aria-live="polite">
+            <div id="qr-code" class="qr-code"></div>
+            <p class="text-sm text-slate-600">QR code prêt à scanner sur smartphone.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="mt-6">
+        <div class="flex flex-col gap-3 md-flex-row md-items-center md-justify-between">
+          <div class="segmented" role="tablist" aria-label="Filtres">
+            <button class="segmented-btn active" data-filter="all" type="button">Tous</button>
+            <button class="segmented-btn" data-filter="pending" type="button">En attente</button>
+            <button class="segmented-btn" data-filter="signed" type="button">Validé</button>
+            <button class="segmented-btn" data-filter="dispute" type="button">Litige</button>
+          </div>
+        </div>
+
+        <div class="mt-4 table-shell">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Client</th>
+                <th class="px-4 py-3">Intervention</th>
+                <th class="px-4 py-3">Statut</th>
+                <th class="px-4 py-3">Créé le</th>
+                <th class="px-4 py-3">Lien</th>
+              </tr>
+            </thead>
+            <tbody id="validations-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="./lib/config.js"></script>
+    <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/dashboard.js"></script>
+  </body>
+</html>
