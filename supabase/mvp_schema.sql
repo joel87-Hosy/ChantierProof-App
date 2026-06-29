@@ -22,7 +22,10 @@ create table if not exists public.validations (
   technician_name text,
   technician_notes text,
   signer_name text,
-  signed_at timestamptz
+  signed_at timestamptz,
+  pdf_url text,
+  accounting_status text not null default 'not_sent',
+  sent_to_accounting_at timestamptz
 );
 
 do $$
@@ -71,7 +74,10 @@ alter table public.validations
   add column if not exists technician_notes text,
   add column if not exists created_by uuid references auth.users(id) on delete set null,
   add column if not exists assigned_team_id uuid references public.teams(id) on delete set null,
-  add column if not exists assigned_technician_id uuid references auth.users(id) on delete set null;
+  add column if not exists assigned_technician_id uuid references auth.users(id) on delete set null,
+  add column if not exists pdf_url text,
+  add column if not exists accounting_status text not null default 'not_sent',
+  add column if not exists sent_to_accounting_at timestamptz;
 
 create index if not exists validations_status_idx
   on public.validations (status);
@@ -150,7 +156,7 @@ values (
   'validation-assets',
   false,
   10485760,
-  array['image/jpeg', 'image/png', 'image/webp']
+  array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 )
 on conflict (id) do update set
   public = excluded.public,

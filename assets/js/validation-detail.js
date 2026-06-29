@@ -11,6 +11,8 @@
   const mapLink = document.getElementById("detail-map-link");
   const signerEl = document.getElementById("detail-signer");
   const signedAtEl = document.getElementById("detail-signed-at");
+  const accountingEl = document.getElementById("detail-accounting");
+  const pdfButton = document.getElementById("detail-pdf-btn");
   const beforeEl = document.getElementById("detail-before");
   const afterEl = document.getElementById("detail-after");
   const errorEl = document.getElementById("detail-error");
@@ -81,6 +83,7 @@
       if (response.error) throw response.error;
 
       const row = response.data;
+      pdfButton.onclick = null;
       fieldLink.href = validationUrl(row.id);
       clientEl.textContent = row.client_name || "-";
       titleEl.textContent = row.intervention_title || "-";
@@ -97,6 +100,20 @@
       notesEl.textContent = row.technician_notes || "Aucun commentaire pour le moment";
       signerEl.textContent = row.signer_name || "Non signe";
       signedAtEl.textContent = row.signed_at ? window.ChantierProof.formatDate(row.signed_at) : "En attente de validation";
+      accountingEl.textContent = row.accounting_status === "sent_to_accounting"
+        ? `Envoye au comptable le ${window.ChantierProof.formatDate(row.sent_to_accounting_at)}`
+        : "Non envoye";
+
+      if (row.pdf_url) {
+        pdfButton.classList.remove("hidden");
+        pdfButton.addEventListener("click", async () => {
+          try {
+            await window.ChantierProof.openPdf(client, row.pdf_url);
+          } catch (error) {
+            showError(error.message || "PDF indisponible.");
+          }
+        });
+      }
 
       const url = mapUrl(row.gps_position);
       if (url) {

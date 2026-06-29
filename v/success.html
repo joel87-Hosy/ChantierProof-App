@@ -37,6 +37,16 @@
           </div>
         </dl>
       </section>
+      <section class="panel mt-5">
+        <h2 class="text-lg font-semibold">Comptabilité</h2>
+        <p class="mt-2 text-sm text-slate-600">Generez le PDF horodate et geolocalise, puis envoyez-le au comptable pour declencher la facturation.</p>
+        <button id="send-accounting-btn" class="btn btn-primary w-full mt-4" type="button">
+          <i data-lucide="send" class="icon"></i>
+          Generer et envoyer au comptable
+        </button>
+        <p id="accounting-message" class="hidden mt-3 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></p>
+        <p id="accounting-error" class="hidden mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+      </section>
       <a id="success-detail-link" class="btn btn-secondary mt-5" href="../dashboard.html">
         <i data-lucide="layout-dashboard" class="icon"></i>
         Retour au dashboard
@@ -44,9 +54,11 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="../lib/config.js"></script>
     <script src="../assets/js/supabase.js"></script>
+    <script src="../assets/js/pdf.js"></script>
     <script src="../assets/js/success.js"></script>
   </body>
 </html>

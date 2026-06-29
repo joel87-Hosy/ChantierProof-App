@@ -49,6 +49,14 @@
           <p id="detail-signer" class="mt-2 font-semibold">-</p>
           <p id="detail-signed-at" class="mt-1 text-sm text-slate-600">-</p>
         </article>
+        <article class="panel">
+          <p class="text-sm text-slate-500">Comptabilité</p>
+          <p id="detail-accounting" class="mt-2 font-semibold">-</p>
+          <button id="detail-pdf-btn" class="btn btn-secondary btn-sm mt-3 hidden" type="button">
+            <i data-lucide="file-text" class="icon"></i>
+            Visualiser / télécharger PDF
+          </button>
+        </article>
       </section>
 
       <section class="panel mt-6">
@@ -71,9 +79,11 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./lib/config.js"></script>
     <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/pdf.js"></script>
     <script src="./assets/js/validation-detail.js"></script>
   </body>
 </html>

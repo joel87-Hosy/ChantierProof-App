@@ -8,7 +8,7 @@
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-950">
     <main class="mx-auto w-full max-w-6xl px-4 py-6 md-px-8">
-      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
+      <header class="dashboard-header flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
         <div>
           <div class="brand-lockup">
             <span class="brand-mark">CP</span>
@@ -16,9 +16,13 @@
           </div>
           <h1 class="mt-1 text-3xl font-bold">Validations</h1>
         </div>
-        <div class="flex flex-col gap-2 md-items-end">
+        <div class="dashboard-actions">
           <div id="user-chip" class="user-chip hidden"></div>
-          <div class="flex flex-col gap-2 md-flex-row">
+          <button id="dashboard-menu-btn" class="btn btn-secondary dashboard-menu-trigger" type="button" aria-expanded="false" aria-controls="dashboard-action-menu">
+            <i data-lucide="menu" class="icon"></i>
+            Menu
+          </button>
+          <div id="dashboard-action-menu" class="dashboard-action-menu">
             <a id="profile-link" class="btn btn-secondary" href="./profile.html">
               <i data-lucide="user" class="icon"></i>
               Mon profil
@@ -78,7 +82,7 @@
           </div>
         </div>
 
-        <div class="mt-4 table-shell">
+        <div class="mt-4 table-shell validations-scroll">
           <table class="w-full border-collapse text-left text-sm">
             <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
               <tr>
@@ -87,6 +91,7 @@
                 <th class="px-4 py-3">Statut</th>
                 <th class="px-4 py-3">Tarif</th>
                 <th class="px-4 py-3">Créé le</th>
+                <th class="px-4 py-3">Comptabilité</th>
                 <th class="px-4 py-3">Détail</th>
                 <th class="px-4 py-3">Validation terrain</th>
               </tr>

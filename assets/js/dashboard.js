@@ -6,6 +6,8 @@
   const logoutButton = document.getElementById("logout-btn");
   const userChip = document.getElementById("user-chip");
   const usersLink = document.getElementById("users-link");
+  const menuButton = document.getElementById("dashboard-menu-btn");
+  const actionMenu = document.getElementById("dashboard-action-menu");
   const copyButton = document.getElementById("copy-link-btn");
   const shareButton = document.getElementById("share-link-btn");
   const qrPanel = document.getElementById("qr-panel");
@@ -59,6 +61,18 @@
     userChip.textContent = `${name} · ${role}`;
     userChip.classList.remove("hidden");
     usersLink.classList.toggle("hidden", role !== "admin");
+  }
+
+  function closeDashboardMenu() {
+    if (!actionMenu || !menuButton) return;
+    actionMenu.classList.remove("open");
+    menuButton.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleDashboardMenu() {
+    if (!actionMenu || !menuButton) return;
+    const isOpen = actionMenu.classList.toggle("open");
+    menuButton.setAttribute("aria-expanded", String(isOpen));
   }
 
   function validationUrl(id) {
@@ -145,7 +159,7 @@
     if (!visibleRows.length) {
       table.innerHTML = `
         <tr>
-          <td class="px-4 py-3 text-slate-500" colspan="7">Aucune validation pour le moment.</td>
+          <td class="px-4 py-3 text-slate-500" colspan="8">Aucune validation pour le moment.</td>
         </tr>
       `;
     } else {
@@ -156,6 +170,7 @@
         <td class="px-4 py-3">${statusBadge(row.status)}</td>
         <td class="px-4 py-3 text-slate-600">${formatPrice(row.intervention_price)}</td>
         <td class="px-4 py-3 text-slate-600">${window.ChantierProof.formatDate(row.created_at)}</td>
+        <td class="px-4 py-3">${accountingBadge(row.accounting_status)}</td>
         <td class="px-4 py-3"><a class="text-blue-700 font-semibold" href="${detailUrl(row.id)}">Ouvrir</a></td>
         <td class="px-4 py-3">${fieldAction(row)}</td>
       </tr>
@@ -176,6 +191,13 @@
     }
 
     return `<a class="text-blue-700 font-semibold" href="${validationUrl(row.id)}">Photos / signature</a>`;
+  }
+
+  function accountingBadge(status) {
+    if (status === "sent_to_accounting") {
+      return '<span class="badge badge-signed">Envoye compta</span>';
+    }
+    return '<span class="badge badge-pending">Non envoye</span>';
   }
 
   async function loadRows() {
@@ -284,6 +306,21 @@
     const client = window.ChantierProof.getClient();
     await client.auth.signOut();
     window.location.href = "./login.html";
+  });
+
+  menuButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleDashboardMenu();
+  });
+
+  actionMenu?.addEventListener("click", (event) => {
+    if (event.target.closest("a,button")) closeDashboardMenu();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!actionMenu?.classList.contains("open")) return;
+    if (actionMenu.contains(event.target) || menuButton?.contains(event.target)) return;
+    closeDashboardMenu();
   });
 
   window.lucide?.createIcons();
