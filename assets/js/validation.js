@@ -95,7 +95,7 @@
         signature_png_url: signaturePath,
         signer_name: signerInput.value.trim(),
         signed_at: new Date().toISOString()
-      }).eq("id", id).select("id").single();
+      }).eq("id", id).eq("status", "pending");
 
       if (response.error) throw response.error;
       window.location.href = `./success.html?id=${encodeURIComponent(id)}`;
