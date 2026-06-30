@@ -58,9 +58,42 @@
 
     const name = currentProfile?.full_name || currentUser.email;
     const role = currentProfile?.role || "user";
-    userChip.textContent = `${name} · ${role}`;
+    const avatarUrl = await signedAvatar(currentProfile?.avatar_url);
+    const initials = getInitials(name);
+    userChip.innerHTML = `
+      <span class="user-chip-avatar" aria-hidden="true">
+        ${avatarUrl ? `<img src="${avatarUrl}" alt="">` : initials}
+      </span>
+      <span class="user-chip-text">${escapeHtml(name)} &middot; ${escapeHtml(role)}</span>
+    `;
     userChip.classList.remove("hidden");
     usersLink.classList.toggle("hidden", role !== "admin");
+  }
+
+  async function signedAvatar(path) {
+    if (!path) return null;
+    const client = window.ChantierProof.getClient();
+    const response = await client.storage.from("profile-avatars").createSignedUrl(path, 600);
+    return response.error ? null : response.data.signedUrl;
+  }
+
+  function getInitials(value) {
+    return String(value || "CP")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "CP";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]);
   }
 
   function closeDashboardMenu() {
