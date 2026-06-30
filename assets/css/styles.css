@@ -189,6 +189,26 @@ table { min-width: 1080px; }
   width: 100%;
 }
 .input:focus { border-color: var(--blue-700); box-shadow: 0 0 0 3px rgba(29,78,216,.12); }
+.password-field { display: block; position: relative; }
+.password-input { padding-right: 3rem; }
+.password-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: .4rem;
+  color: var(--slate-500);
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.1rem;
+  justify-content: center;
+  position: absolute;
+  right: .35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.1rem;
+}
+.password-toggle:hover { background: var(--slate-100); color: var(--slate-700); }
+.password-toggle:focus-visible { outline: 2px solid var(--blue-700); outline-offset: 2px; }
 .textarea { min-height: 7rem; resize: vertical; }
 .label { color: var(--slate-700); display: block; font-size: .875rem; font-weight: 600; }
 .checkbox { accent-color: var(--blue-700); height: 1.05rem; width: 1.05rem; }

@@ -12,6 +12,7 @@
   const inviteTokenInput = document.getElementById("invite-token");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
+  const togglePassword = document.getElementById("toggle-password");
 
   let mode = "login";
 
@@ -132,6 +133,14 @@
 
   loginTab.addEventListener("click", () => setMode("login"));
   inviteTab.addEventListener("click", () => setMode("invite"));
+  togglePassword.addEventListener("click", () => {
+    const shouldShow = passwordInput.type === "password";
+    passwordInput.type = shouldShow ? "text" : "password";
+    togglePassword.setAttribute("aria-label", shouldShow ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    togglePassword.setAttribute("aria-pressed", String(shouldShow));
+    togglePassword.innerHTML = `<i data-lucide="${shouldShow ? "eye-off" : "eye"}" class="icon"></i>`;
+    window.lucide?.createIcons();
+  });
 
   const params = new URLSearchParams(window.location.search);
   if (params.get("invite")) {

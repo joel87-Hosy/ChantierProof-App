@@ -32,7 +32,12 @@
           </label>
           <label class="block">
             <span class="label">Mot de passe</span>
-            <input id="password" class="input mt-2" type="password" autocomplete="current-password" minlength="6" required>
+            <span class="password-field mt-2">
+              <input id="password" class="input password-input" type="password" autocomplete="current-password" minlength="6" required>
+              <button id="toggle-password" class="password-toggle" type="button" aria-label="Afficher le mot de passe" aria-pressed="false">
+                <i data-lucide="eye" class="icon"></i>
+              </button>
+            </span>
           </label>
 
           <p id="auth-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
