@@ -222,6 +222,8 @@ table { min-width: 1080px; }
 .icon { height: 1rem; width: 1rem; }
 .icon-btn { align-items: center; background: #fff; border: 1px solid var(--slate-200); border-radius: .5rem; cursor: pointer; display: inline-flex; height: 2.5rem; justify-content: center; width: 2.5rem; }
 .icon-btn:hover { background: var(--slate-100); }
+.icon-btn-danger { color: var(--red-700); }
+.icon-btn-danger:hover { background: var(--red-50); border-color: var(--red-700); }
 .metric-icon { color: var(--blue-700); height: 2rem; width: 2rem; }
 .success-icon { height: 2rem; width: 2rem; }
 .upload-icon { color: var(--blue-700); height: 1.35rem; margin-bottom: .75rem; width: 1.35rem; }

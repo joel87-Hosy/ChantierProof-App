@@ -58,6 +58,16 @@
     return url.href;
   }
 
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]);
+  }
+
   async function loadInvitations() {
     const response = await client
       .from("user_invitations")
@@ -73,13 +83,39 @@
     const rows = response.data || [];
     table.innerHTML = rows.length ? rows.map((row) => `
       <tr class="border-b">
-        <td class="px-4 py-3 font-medium">${row.full_name || "-"}</td>
-        <td class="px-4 py-3 text-slate-600">${row.email}</td>
-        <td class="px-4 py-3 text-slate-600">${row.role}</td>
-        <td class="px-4 py-3 text-slate-600">${row.team_name || "-"}</td>
-        <td class="px-4 py-3"><code>${row.token}</code></td>
+        <td class="px-4 py-3 font-medium">${escapeHtml(row.full_name || "-")}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.email)}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.role)}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.team_name || "-")}</td>
+        <td class="px-4 py-3"><code>${escapeHtml(row.token)}</code></td>
+        <td class="px-4 py-3 text-right">
+          <button class="icon-btn icon-btn-danger delete-invitation" type="button" data-id="${escapeHtml(row.id)}" data-email="${escapeHtml(row.email)}" aria-label="Supprimer l'invitation de ${escapeHtml(row.email)}">
+            <i data-lucide="trash-2" class="icon"></i>
+          </button>
+        </td>
       </tr>
-    `).join("") : '<tr><td class="px-4 py-3 text-slate-500" colspan="5">Aucune invitation en attente.</td></tr>';
+    `).join("") : '<tr><td class="px-4 py-3 text-slate-500" colspan="6">Aucune invitation en attente.</td></tr>';
+    window.lucide?.createIcons();
+  }
+
+  async function deleteInvitation(id, email) {
+    const shouldDelete = window.confirm(`Supprimer l'invitation en attente pour ${email} ?`);
+    if (!shouldDelete) return;
+
+    const response = await client
+      .from("user_invitations")
+      .delete()
+      .eq("id", id)
+      .is("accepted_at", null);
+
+    if (response.error) {
+      showError(response.error.message);
+      return;
+    }
+
+    linkBox.textContent = "Invitation supprimee.";
+    linkBox.classList.remove("hidden");
+    await loadInvitations();
   }
 
   form.addEventListener("submit", async (event) => {
@@ -108,6 +144,16 @@
     linkBox.classList.remove("hidden");
     form.reset();
     await loadInvitations();
+  });
+
+  table.addEventListener("click", async (event) => {
+    const button = event.target.closest(".delete-invitation");
+    if (!button) return;
+
+    button.disabled = true;
+    errorBox.classList.add("hidden");
+    await deleteInvitation(button.dataset.id, button.dataset.email);
+    button.disabled = false;
   });
 
   requireAdmin().then((ok) => {
