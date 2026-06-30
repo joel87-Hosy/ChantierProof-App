@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: chantierproof
+    runtime: static
+    buildCommand: node scripts/generate-config.mjs
+    staticPublishPath: .
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: validation-assets
+      - key: PUBLIC_SITE_URL
+        sync: false

@@ -35,12 +35,17 @@ function ConvertTo-JsString([string] $value) {
 $supabaseUrl = ConvertTo-JsString $values["SUPABASE_URL"]
 $supabaseAnonKey = ConvertTo-JsString $values["SUPABASE_ANON_KEY"]
 $storageBucket = ConvertTo-JsString $values["SUPABASE_STORAGE_BUCKET"]
+$publicSiteUrl = ""
+if ($values.ContainsKey("PUBLIC_SITE_URL")) {
+  $publicSiteUrl = ConvertTo-JsString $values["PUBLIC_SITE_URL"].TrimEnd("/")
+}
 
 $content = @"
 window.CHANTIERPROOF_CONFIG = {
   supabaseUrl: "$supabaseUrl",
   supabaseAnonKey: "$supabaseAnonKey",
-  storageBucket: "$storageBucket"
+  storageBucket: "$storageBucket",
+  publicSiteUrl: "$publicSiteUrl"
 };
 "@
 

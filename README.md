@@ -22,7 +22,10 @@ Variables attendues :
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 SUPABASE_STORAGE_BUCKET=validation-assets
+PUBLIC_SITE_URL=https://your-public-site.example
 ```
+
+`PUBLIC_SITE_URL` doit etre l'adresse publique de l'application, sans slash final. Supabase l'utilise pour ramener l'utilisateur sur `login.html` apres la confirmation email.
 
 ## Pages
 

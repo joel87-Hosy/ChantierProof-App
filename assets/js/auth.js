@@ -13,8 +13,15 @@
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
   const togglePassword = document.getElementById("toggle-password");
+  const config = window.CHANTIERPROOF_CONFIG || {};
 
   let mode = "login";
+
+  function getEmailRedirectUrl() {
+    const publicSiteUrl = (config.publicSiteUrl || "").replace(/\/$/, "");
+    if (publicSiteUrl) return `${publicSiteUrl}/login.html`;
+    return new URL("./login.html", window.location.href).href;
+  }
 
   function setMode(nextMode) {
     mode = nextMode;
@@ -79,6 +86,7 @@
       email: emailInput.value.trim(),
       password: passwordInput.value,
       options: {
+        emailRedirectTo: getEmailRedirectUrl(),
         data: {
           full_name: invitation.full_name,
           role: invitation.role,
