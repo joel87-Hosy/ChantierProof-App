@@ -33,6 +33,10 @@ PUBLIC_SITE_URL=https://your-public-site.example
 - `dashboard.html`
 - `v/validation.html?id=<uuid>`
 - `v/success.html?id=<uuid>`
+- `conditions-utilisation.html`
+- `politique-confidentialite.html`
+- `mentions-legales.html`
+- `faq.html`
 
 ## Librairies CDN
 
