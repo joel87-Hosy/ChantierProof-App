@@ -401,7 +401,8 @@ main > header {
 .dashboard-tab.active { order: 0; }
 #profile-link { order: 2; }
 #users-link { order: 3; }
-#logout-btn { order: 4; }
+#accounting-link { order: 4; }
+#logout-btn { order: 5; }
 .preview-grid {
   display: grid;
   gap: 1rem;

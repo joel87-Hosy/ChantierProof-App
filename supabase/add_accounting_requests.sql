@@ -15,21 +15,30 @@ create table if not exists public.accounting_requests (
   unique (validation_id)
 );
 
+create index if not exists accounting_requests_status_created_at_idx
+  on public.accounting_requests (status, created_at desc);
+
+create index if not exists accounting_requests_validation_id_idx
+  on public.accounting_requests (validation_id);
+
 alter table public.accounting_requests enable row level security;
 
-update storage.buckets
-set allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-where id = 'validation-assets';
-
-drop policy if exists "Public can update accounting pdf"
+drop policy if exists "Accountants can read signed validations"
   on public.validations;
 
-create policy "Public can update accounting pdf"
+create policy "Accountants can read signed validations"
   on public.validations
-  for update
-  to anon
-  using (status = 'signed'::public.validation_status)
-  with check (status = 'signed'::public.validation_status);
+  for select
+  to authenticated
+  using (
+    status = 'signed'::public.validation_status
+    and exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+        and profiles.role in ('admin'::public.app_role, 'accountant'::public.app_role)
+    )
+  );
 
 drop policy if exists "Public can create accounting request for signed validation"
   on public.accounting_requests;
@@ -57,7 +66,8 @@ create policy "Accountants can read accounting requests"
   to authenticated
   using (
     exists (
-      select 1 from public.profiles
+      select 1
+      from public.profiles
       where profiles.id = auth.uid()
         and profiles.role in ('admin'::public.app_role, 'accountant'::public.app_role)
     )
@@ -72,18 +82,24 @@ create policy "Accountants can update accounting requests"
   to authenticated
   using (
     exists (
-      select 1 from public.profiles
+      select 1
+      from public.profiles
       where profiles.id = auth.uid()
         and profiles.role in ('admin'::public.app_role, 'accountant'::public.app_role)
     )
   )
   with check (
     exists (
-      select 1 from public.profiles
+      select 1
+      from public.profiles
       where profiles.id = auth.uid()
         and profiles.role in ('admin'::public.app_role, 'accountant'::public.app_role)
     )
   );
+
+update storage.buckets
+set allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+where id = 'validation-assets';
 
 drop policy if exists "Public can upload validation pdf"
   on storage.objects;
@@ -95,4 +111,21 @@ create policy "Public can upload validation pdf"
   with check (
     bucket_id = 'validation-assets'
     and lower(right(name, 4)) = '.pdf'
+  );
+
+drop policy if exists "Accountants can read validation assets"
+  on storage.objects;
+
+create policy "Accountants can read validation assets"
+  on storage.objects
+  for select
+  to authenticated
+  using (
+    bucket_id = 'validation-assets'
+    and exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+        and profiles.role in ('admin'::public.app_role, 'accountant'::public.app_role)
+    )
   );

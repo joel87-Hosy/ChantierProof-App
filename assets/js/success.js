@@ -29,9 +29,7 @@
           "signed_at",
           "photo_before_url",
           "photo_after_url",
-          "signature_png_url",
-          "pdf_url",
-          "accounting_status"
+          "signature_png_url"
         ].join(","))
         .eq("id", id)
         .single();
@@ -75,16 +73,19 @@
     try {
       const client = window.ChantierProof.getClient();
       const pdfPath = await window.ChantierProof.uploadValidationPdf(client, validationRow);
-      const response = await client.from("validations").update({
-        pdf_url: pdfPath,
-        accounting_status: "sent_to_accounting",
-        sent_to_accounting_at: new Date().toISOString()
-      }).eq("id", id);
+      const response = await client
+        .from("accounting_requests")
+        .insert({
+          validation_id: id,
+          pdf_url: pdfPath,
+          status: "pending",
+          requested_at: new Date().toISOString()
+        })
+        .select("id")
+        .single();
 
       if (response.error) throw response.error;
-      validationRow.pdf_url = pdfPath;
-      validationRow.accounting_status = "sent_to_accounting";
-      accountingMessage.textContent = "PDF envoye au comptable. Il est disponible dans le detail de la validation.";
+      accountingMessage.textContent = "Demande envoyee au compte comptable. Elle est disponible dans l'interface comptabilite.";
       accountingMessage.classList.remove("hidden");
     } catch (error) {
       console.error("Send accounting failed:", error);

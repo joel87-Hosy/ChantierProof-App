@@ -77,7 +77,13 @@
     });
 
     if (response.error) throw response.error;
-    window.location.href = "./dashboard.html";
+    const profileResponse = await client
+      .from("profiles")
+      .select("role")
+      .eq("id", response.data.user.id)
+      .maybeSingle();
+    const role = profileResponse.data?.role;
+    window.location.href = role === "accountant" ? "./accounting.html" : "./dashboard.html";
   }
 
   async function handleInviteActivation() {
@@ -118,7 +124,7 @@
       .update({ accepted_at: new Date().toISOString() })
       .eq("id", invitation.id);
 
-    window.location.href = "./profile.html";
+    window.location.href = invitation.role === "accountant" ? "./accounting.html" : "./profile.html";
   }
 
   form.addEventListener("submit", async (event) => {

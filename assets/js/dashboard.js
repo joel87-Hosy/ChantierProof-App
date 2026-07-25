@@ -6,6 +6,7 @@
   const logoutButton = document.getElementById("logout-btn");
   const userChip = document.getElementById("user-chip");
   const usersLink = document.getElementById("users-link");
+  const accountingLink = document.getElementById("accounting-link");
   const menuButton = document.getElementById("dashboard-menu-btn");
   const actionMenu = document.getElementById("dashboard-action-menu");
   const copyButton = document.getElementById("copy-link-btn");
@@ -80,6 +81,7 @@
     `;
     userChip.classList.remove("hidden");
     usersLink.classList.toggle("hidden", role !== "admin");
+    accountingLink?.classList.toggle("hidden", !["admin", "accountant"].includes(role));
   }
 
   async function signedAvatar(path) {
