@@ -64,7 +64,9 @@
   async function renderImage(client, element, path, alt) {
     const url = await resolveImageUrl(client, path);
     if (!url) {
-      element.textContent = "Aucune photo pour le moment";
+      element.textContent = path
+        ? "Photo enregistree, mais acces Storage indisponible"
+        : "Aucune photo pour le moment";
       return;
     }
 
@@ -93,9 +95,6 @@
           "technician_notes",
           "signer_name",
           "signed_at",
-          "accounting_status",
-          "sent_to_accounting_at",
-          "pdf_url",
           "photo_before_url",
           "photo_after_url"
         ].join(","))
@@ -121,20 +120,7 @@
       notesEl.textContent = row.technician_notes || "Aucun commentaire pour le moment";
       signerEl.textContent = row.signer_name || "Non signe";
       signedAtEl.textContent = row.signed_at ? window.ChantierProof.formatDate(row.signed_at) : "En attente de validation";
-      accountingEl.textContent = row.accounting_status === "sent_to_accounting"
-        ? `Envoye au comptable le ${window.ChantierProof.formatDate(row.sent_to_accounting_at)}`
-        : "Non envoye";
-
-      if (row.pdf_url) {
-        pdfButton.classList.remove("hidden");
-        pdfButton.addEventListener("click", async () => {
-          try {
-            await window.ChantierProof.openPdf(client, row.pdf_url);
-          } catch (error) {
-            showError(error.message || "PDF indisponible.");
-          }
-        });
-      }
+      accountingEl.textContent = "Non envoye";
 
       const url = mapUrl(row.gps_position);
       if (url) {

@@ -175,20 +175,29 @@
       const afterPath = await uploadFile(client, compressedAfter, `${prefix}-after.jpg`, "Upload photo apres");
       const signaturePath = await uploadFile(client, signatureBlob, `${prefix}-signature.png`, "Upload signature");
 
-      const response = await client.from("validations").update({
-        status: "signed",
-        photo_before_url: beforePath,
-        photo_after_url: afterPath,
-        signature_png_url: signaturePath,
-        technician_name: technicianNameInput.value.trim(),
-        gps_position: fieldGpsInput.value.trim(),
-        technician_notes: technicianNotesInput.value.trim() || null,
-        signer_name: signerInput.value.trim(),
-        signed_at: new Date().toISOString()
-      }).eq("id", id).eq("status", "pending");
+      const response = await client
+        .from("validations")
+        .update({
+          status: "signed",
+          photo_before_url: beforePath,
+          photo_after_url: afterPath,
+          signature_png_url: signaturePath,
+          technician_name: technicianNameInput.value.trim(),
+          gps_position: fieldGpsInput.value.trim(),
+          technician_notes: technicianNotesInput.value.trim() || null,
+          signer_name: signerInput.value.trim(),
+          signed_at: new Date().toISOString()
+        })
+        .eq("id", id)
+        .eq("status", "pending")
+        .select("id,photo_before_url,photo_after_url")
+        .single();
 
       if (response.error) {
         throw new Error(`Mise a jour validation : ${response.error.message}`);
+      }
+      if (!response.data?.photo_before_url || !response.data?.photo_after_url) {
+        throw new Error("Les photos ont ete envoyees, mais leurs chemins n'ont pas ete enregistres.");
       }
       window.location.href = `./success.html?id=${encodeURIComponent(id)}`;
     } catch (error) {
