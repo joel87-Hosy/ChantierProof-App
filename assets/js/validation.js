@@ -22,6 +22,11 @@
   let validation = null;
   let beforeFile = null;
   let afterFile = null;
+  const imageOptions = {
+    maxWidth: 1600,
+    maxHeight: 1600,
+    quality: 0.78
+  };
 
   function showError(message) {
     errorBox.textContent = message;
@@ -40,6 +45,57 @@
     window.lucide?.createIcons();
   }
 
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Compression image impossible."));
+        }
+      }, type, quality);
+    });
+  }
+
+  function imageFromFile(file) {
+    if (window.createImageBitmap) {
+      return createImageBitmap(file);
+    }
+
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Image illisible."));
+      image.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function compressImage(file, label) {
+    if (!file || !file.type.startsWith("image/")) {
+      throw new Error(`${label} : fichier image invalide.`);
+    }
+
+    const source = await imageFromFile(file);
+    const ratio = Math.min(
+      1,
+      imageOptions.maxWidth / source.width,
+      imageOptions.maxHeight / source.height
+    );
+    const width = Math.max(1, Math.round(source.width * ratio));
+    const height = Math.max(1, Math.round(source.height * ratio));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(source, 0, 0, width, height);
+
+    const blob = await canvasToBlob(canvas, "image/jpeg", imageOptions.quality);
+    const compressedName = `${file.name.replace(/\.[^.]+$/, "") || "photo"}.jpg`;
+    return new File([blob], compressedName, {
+      type: "image/jpeg",
+      lastModified: Date.now()
+    });
+  }
+
   async function loadValidation() {
     if (!id) {
       showError("Lien de validation invalide.");
@@ -48,7 +104,11 @@
 
     try {
       const client = window.ChantierProof.getClient();
-      const response = await client.from("validations").select("*").eq("id", id).single();
+      const response = await client
+        .from("validations")
+        .select("id,client_name,intervention_title,status")
+        .eq("id", id)
+        .single();
       if (response.error) throw response.error;
       validation = response.data;
     } catch (error) {
@@ -109,8 +169,10 @@
       const client = window.ChantierProof.getClient();
       const signatureBlob = await signature.toBlob();
       const prefix = `${id}/${Date.now()}`;
-      const beforePath = await uploadFile(client, beforeFile, `${prefix}-before.jpg`, "Upload photo avant");
-      const afterPath = await uploadFile(client, afterFile, `${prefix}-after.jpg`, "Upload photo apres");
+      const compressedBefore = await compressImage(beforeFile, "Photo avant");
+      const compressedAfter = await compressImage(afterFile, "Photo apres");
+      const beforePath = await uploadFile(client, compressedBefore, `${prefix}-before.jpg`, "Upload photo avant");
+      const afterPath = await uploadFile(client, compressedAfter, `${prefix}-after.jpg`, "Upload photo apres");
       const signaturePath = await uploadFile(client, signatureBlob, `${prefix}-signature.png`, "Upload signature");
 
       const response = await client.from("validations").update({

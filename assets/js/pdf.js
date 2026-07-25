@@ -1,5 +1,33 @@
 (function () {
   window.ChantierProof = window.ChantierProof || {};
+  let jsPdfPromise = null;
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        existing.addEventListener("load", resolve, { once: true });
+        existing.addEventListener("error", reject, { once: true });
+        if (window.jspdf?.jsPDF) resolve();
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("Chargement jsPDF impossible."));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function ensureJsPdf() {
+    if (window.jspdf?.jsPDF) return;
+    if (!jsPdfPromise) {
+      jsPdfPromise = loadScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+    }
+    await jsPdfPromise;
+  }
 
   function formatPrice(value) {
     if (value === null || value === undefined || value === "") return "-";
@@ -44,9 +72,7 @@
   }
 
   async function generateValidationPdf(client, row) {
-    if (!window.jspdf?.jsPDF) {
-      throw new Error("jsPDF n'est pas charge.");
-    }
+    await ensureJsPdf();
 
     const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
     const now = new Date();

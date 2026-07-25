@@ -1,5 +1,6 @@
 (function () {
   const config = window.CHANTIERPROOF_CONFIG || {};
+  let client = null;
 
   window.ChantierProof = window.ChantierProof || {};
   window.ChantierProof.getClient = function () {
@@ -11,7 +12,11 @@
       console.warn("Configure lib/config.js avec ton URL Supabase et ta cle anon.");
     }
 
-    return window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    if (!client) {
+      client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    }
+
+    return client;
   };
 
   window.ChantierProof.getValidationId = function () {

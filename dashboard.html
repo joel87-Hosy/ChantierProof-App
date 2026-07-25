@@ -23,19 +23,23 @@
             Menu
           </button>
           <div id="dashboard-action-menu" class="dashboard-action-menu">
-            <a id="profile-link" class="btn btn-secondary" href="./profile.html">
+            <a class="dashboard-tab active" href="./dashboard.html" aria-current="page">
+              <i data-lucide="layout-dashboard" class="icon"></i>
+              Validations
+            </a>
+            <a id="profile-link" class="dashboard-tab" href="./profile.html">
               <i data-lucide="user" class="icon"></i>
               Mon profil
             </a>
-            <a id="users-link" class="btn btn-secondary hidden" href="./users.html">
+            <a id="users-link" class="dashboard-tab hidden" href="./users.html">
               <i data-lucide="users" class="icon"></i>
               Utilisateurs
             </a>
-            <button id="logout-btn" class="btn btn-secondary" type="button">
+            <button id="logout-btn" class="dashboard-tab" type="button">
               <i data-lucide="log-out" class="icon"></i>
               Déconnexion
             </button>
-            <button id="new-validation-btn" class="btn btn-primary" type="button">
+            <button id="new-validation-btn" class="dashboard-tab dashboard-tab-primary" type="button">
               <i data-lucide="plus" class="icon"></i>
               Nouveau lien de validation
             </button>
@@ -98,6 +102,12 @@
             </thead>
             <tbody id="validations-table"></tbody>
           </table>
+        </div>
+        <div class="mt-4 flex justify-center">
+          <button id="load-more-validations" class="btn btn-secondary hidden" type="button">
+            <i data-lucide="chevrons-down" class="icon"></i>
+            Charger plus
+          </button>
         </div>
       </section>
     </main>

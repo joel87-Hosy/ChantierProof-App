@@ -60,7 +60,7 @@
 
     const response = await client
       .from("user_invitations")
-      .select("*")
+      .select("id,email,full_name,role,team_id,team_name")
       .eq("token", token)
       .eq("email", email)
       .is("accepted_at", null)

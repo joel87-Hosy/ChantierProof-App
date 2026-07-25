@@ -3,9 +3,11 @@ create extension if not exists "pgcrypto";
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'validation_status') then
-    create type public.validation_status as enum ('pending', 'signed');
+    create type public.validation_status as enum ('pending', 'signed', 'dispute');
   end if;
 end $$;
+
+alter type public.validation_status add value if not exists 'dispute';
 
 create table if not exists public.validations (
   id uuid primary key default gen_random_uuid(),
@@ -87,6 +89,15 @@ create index if not exists validations_created_at_idx
 
 create index if not exists validations_signed_at_idx
   on public.validations (signed_at desc);
+
+create index if not exists validations_status_created_at_idx
+  on public.validations (status, created_at desc);
+
+create index if not exists validations_created_by_created_at_idx
+  on public.validations (created_by, created_at desc);
+
+create index if not exists validations_accounting_status_created_at_idx
+  on public.validations (accounting_status, created_at desc);
 
 alter table public.validations enable row level security;
 

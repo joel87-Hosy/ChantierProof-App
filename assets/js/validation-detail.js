@@ -68,7 +68,7 @@
       return;
     }
 
-    element.innerHTML = `<img src="${url}" alt="${alt}" class="photo-img">`;
+    element.innerHTML = `<img src="${url}" alt="${alt}" class="photo-img" loading="lazy" decoding="async">`;
   }
 
   async function loadDetail() {
@@ -79,7 +79,28 @@
 
     try {
       const client = window.ChantierProof.getClient();
-      const response = await client.from("validations").select("*").eq("id", id).single();
+      const response = await client
+        .from("validations")
+        .select([
+          "id",
+          "client_name",
+          "intervention_title",
+          "status",
+          "intervention_price",
+          "client_phone",
+          "gps_position",
+          "technician_name",
+          "technician_notes",
+          "signer_name",
+          "signed_at",
+          "accounting_status",
+          "sent_to_accounting_at",
+          "pdf_url",
+          "photo_before_url",
+          "photo_after_url"
+        ].join(","))
+        .eq("id", id)
+        .single();
       if (response.error) throw response.error;
 
       const row = response.data;

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Apercu des comptes | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen dashboard-bg text-slate-950">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 md-px-8">
+      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
+        <div>
+          <a class="back-link" href="./dashboard.html"><i data-lucide="arrow-left" class="icon"></i>Dashboard</a>
+          <div class="brand-lockup mt-5">
+            <span class="brand-mark">CP</span>
+            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">ChantierProof</p>
+          </div>
+          <h1 class="mt-2 text-3xl font-bold">Apercu des comptes non-admin</h1>
+          <p class="mt-2 text-slate-600">Ces vues montrent l'interface actuelle pour les roles technicien, comptable et manager, sans donnees de demonstration.</p>
+        </div>
+      </header>
+
+      <section class="preview-grid mt-6">
+        <article class="preview-frame">
+          <div class="preview-topbar">
+            <div class="brand-lockup">
+              <span class="brand-mark">CP</span>
+              <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Technicien</p>
+            </div>
+            <h2 class="mt-2 text-2xl font-bold">Validations</h2>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span class="user-chip"><span class="user-chip-avatar">CP</span><span class="user-chip-text">Compte technicien</span></span>
+              <a class="btn btn-secondary btn-sm" href="./profile.html"><i data-lucide="user" class="icon"></i>Mon profil</a>
+            </div>
+          </div>
+          <div class="preview-content">
+            <section class="panel">
+              <p class="text-sm text-slate-500">Valides ce mois-ci</p>
+              <div class="mt-2 flex items-center gap-3">
+                <i data-lucide="badge-check" class="metric-icon"></i>
+                <p class="text-4xl font-bold">0</p>
+              </div>
+            </section>
+            <section class="preview-table">
+              <div class="preview-row">
+                <strong>Aucune validation pour le moment.</strong>
+                <span class="text-sm text-slate-600">Les interventions assignees apparaitront ici.</span>
+              </div>
+            </section>
+            <p class="preview-note">Le technicien voit les validations, peut ouvrir le lien terrain, ajouter photos/commentaire/signature et gerer son profil.</p>
+          </div>
+        </article>
+
+        <article class="preview-frame">
+          <div class="preview-topbar">
+            <div class="brand-lockup">
+              <span class="brand-mark">CP</span>
+              <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Comptable</p>
+            </div>
+            <h2 class="mt-2 text-2xl font-bold">Validations</h2>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span class="user-chip"><span class="user-chip-avatar">CP</span><span class="user-chip-text">Compte comptable</span></span>
+              <a class="btn btn-secondary btn-sm" href="./profile.html"><i data-lucide="user" class="icon"></i>Mon profil</a>
+            </div>
+          </div>
+          <div class="preview-content">
+            <section class="panel">
+              <p class="text-sm text-slate-500">Dernier lien genere</p>
+              <div class="mt-2 flex flex-col gap-2">
+                <input class="input" readonly placeholder="Aucun lien genere">
+                <button class="btn btn-secondary" type="button"><i data-lucide="copy" class="icon"></i>Copier</button>
+              </div>
+            </section>
+            <section class="preview-table">
+              <div class="preview-row">
+                <strong>Aucune validation pour le moment.</strong>
+                <span class="text-sm text-slate-600">Les dossiers a traiter apparaitront ici.</span>
+              </div>
+            </section>
+            <p class="preview-note">Le comptable consulte les validations, tarifs, statuts comptables et details PDF. Dans l'app actuelle, il ne voit pas le menu Utilisateurs.</p>
+          </div>
+        </article>
+
+        <article class="preview-frame">
+          <div class="preview-topbar">
+            <div class="brand-lockup">
+              <span class="brand-mark">CP</span>
+              <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Manager terrain</p>
+            </div>
+            <h2 class="mt-2 text-2xl font-bold">Validations</h2>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span class="user-chip"><span class="user-chip-avatar">CP</span><span class="user-chip-text">Compte manager</span></span>
+              <button class="btn btn-primary btn-sm" type="button"><i data-lucide="plus" class="icon"></i>Nouveau lien</button>
+            </div>
+          </div>
+          <div class="preview-content">
+            <section class="panel">
+              <p class="text-sm text-slate-500">Filtres</p>
+              <div class="segmented mt-3">
+                <button class="segmented-btn active" type="button">Tous</button>
+                <button class="segmented-btn" type="button">En attente</button>
+                <button class="segmented-btn" type="button">Valide</button>
+              </div>
+            </section>
+            <section class="preview-table">
+              <div class="preview-row">
+                <strong>Aucune validation pour le moment.</strong>
+                <span class="text-sm text-slate-600">Les validations creees ou suivies apparaitront ici.</span>
+              </div>
+            </section>
+            <p class="preview-note">Le manager suit les interventions, cree des liens de validation et consulte les details. Comme les autres non-admin, il n'a pas acces a la gestion Utilisateurs.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script>window.lucide?.createIcons();</script>
+  </body>
+</html>

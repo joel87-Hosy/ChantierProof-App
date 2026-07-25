@@ -26,6 +26,55 @@
     errorBox.classList.add("hidden");
   }
 
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Compression avatar impossible."));
+        }
+      }, type, quality);
+    });
+  }
+
+  function imageFromFile(file) {
+    if (window.createImageBitmap) {
+      return createImageBitmap(file);
+    }
+
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Avatar illisible."));
+      image.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function compressAvatar(file) {
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Le fichier avatar doit etre une image.");
+    }
+
+    const source = await imageFromFile(file);
+    const size = 512;
+    const scale = Math.max(size / source.width, size / source.height);
+    const width = Math.round(source.width * scale);
+    const height = Math.round(source.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const x = Math.round((size - width) / 2);
+    const y = Math.round((size - height) / 2);
+    canvas.getContext("2d").drawImage(source, x, y, width, height);
+    const blob = await canvasToBlob(canvas, "image/jpeg", 0.82);
+
+    return new File([blob], "avatar.jpg", {
+      type: "image/jpeg",
+      lastModified: Date.now()
+    });
+  }
+
   async function signedAvatar(path) {
     if (!path) return null;
     const response = await client.storage.from("profile-avatars").createSignedUrl(path, 600);
@@ -41,7 +90,11 @@
     }
 
     currentUser = session.user;
-    const response = await client.from("profiles").select("*").eq("id", currentUser.id).maybeSingle();
+    const response = await client
+      .from("profiles")
+      .select("id,email,full_name,role,team_id,team_name,avatar_url")
+      .eq("id", currentUser.id)
+      .maybeSingle();
     currentProfile = response.data || {
       id: currentUser.id,
       email: currentUser.email,
@@ -66,9 +119,9 @@
     const file = avatarInput.files && avatarInput.files[0];
     if (!file) return currentProfile.avatar_url || null;
 
-    const extension = file.name.split(".").pop() || "jpg";
-    const path = `${currentUser.id}/avatar-${Date.now()}.${extension}`;
-    const response = await client.storage.from("profile-avatars").upload(path, file);
+    const avatar = await compressAvatar(file);
+    const path = `${currentUser.id}/avatar-${Date.now()}.jpg`;
+    const response = await client.storage.from("profile-avatars").upload(path, avatar);
     if (response.error) throw response.error;
     return response.data.path;
   }

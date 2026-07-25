@@ -27,7 +27,7 @@
     currentUser = session.user;
     const profileResponse = await client
       .from("profiles")
-      .select("*")
+      .select("role")
       .eq("id", currentUser.id)
       .single();
 
@@ -71,7 +71,7 @@
   async function loadInvitations() {
     const response = await client
       .from("user_invitations")
-      .select("*")
+      .select("id,created_at,email,full_name,role,team_name,token")
       .is("accepted_at", null)
       .order("created_at", { ascending: false });
 
@@ -132,7 +132,7 @@
       team_id: teamId,
       team_name: teamName || null,
       invited_by: currentUser.id
-    }).select("*").single();
+    }).select("token,email").single();
 
     if (response.error) {
       showError(response.error.message);

@@ -23,11 +23,24 @@
   const interventionTitleInput = document.getElementById("new-intervention-title");
   const interventionPriceInput = document.getElementById("new-intervention-price");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+  const loadMoreButton = document.getElementById("load-more-validations");
 
   let rows = [];
   let activeFilter = "all";
   let currentUser = null;
   let currentProfile = null;
+  let currentTotal = 0;
+  const pageSize = 50;
+  const validationColumns = [
+    "id",
+    "created_at",
+    "client_name",
+    "intervention_title",
+    "intervention_price",
+    "status",
+    "signed_at",
+    "accounting_status"
+  ].join(",");
 
   async function requireSession() {
     const client = window.ChantierProof.getClient();
@@ -48,7 +61,7 @@
     const client = window.ChantierProof.getClient();
     const response = await client
       .from("profiles")
-      .select("*")
+      .select("full_name,role,avatar_url")
       .eq("id", currentUser.id)
       .maybeSingle();
 
@@ -188,7 +201,7 @@
   }
 
   function render() {
-    const visibleRows = activeFilter === "all" ? rows : rows.filter((row) => row.status === activeFilter);
+    const visibleRows = rows;
     if (!visibleRows.length) {
       table.innerHTML = `
         <tr>
@@ -198,8 +211,8 @@
     } else {
       table.innerHTML = visibleRows.map((row) => `
       <tr class="border-b">
-        <td class="px-4 py-3 font-medium">${row.client_name || "-"}</td>
-        <td class="px-4 py-3 text-slate-600">${row.intervention_title || "-"}</td>
+        <td class="px-4 py-3 font-medium">${escapeHtml(row.client_name || "-")}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.intervention_title || "-")}</td>
         <td class="px-4 py-3">${statusBadge(row.status)}</td>
         <td class="px-4 py-3 text-slate-600">${formatPrice(row.intervention_price)}</td>
         <td class="px-4 py-3 text-slate-600">${window.ChantierProof.formatDate(row.created_at)}</td>
@@ -210,12 +223,10 @@
       `).join("");
     }
 
-    count.textContent = rows.filter((row) => {
-      if (row.status !== "signed" || !row.signed_at) return false;
-      const signedAt = new Date(row.signed_at);
-      const now = new Date();
-      return signedAt.getMonth() === now.getMonth() && signedAt.getFullYear() === now.getFullYear();
-    }).length;
+    if (loadMoreButton) {
+      loadMoreButton.classList.toggle("hidden", rows.length >= currentTotal);
+      loadMoreButton.disabled = false;
+    }
   }
 
   function fieldAction(row) {
@@ -233,19 +244,58 @@
     return '<span class="badge badge-pending">Non envoye</span>';
   }
 
-  async function loadRows() {
+  async function loadSignedMonthCount() {
     try {
       const client = window.ChantierProof.getClient();
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       const response = await client
         .from("validations")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("id", { count: "exact", head: true })
+        .eq("status", "signed")
+        .gte("signed_at", start.toISOString())
+        .lt("signed_at", end.toISOString());
 
       if (response.error) throw response.error;
-      rows = response.data || [];
+      count.textContent = response.count || 0;
+    } catch (error) {
+      console.error("Load signed month count failed:", error);
+      count.textContent = "0";
+    }
+  }
+
+  async function loadRows(options = {}) {
+    const shouldReset = Boolean(options.reset);
+    if (shouldReset) {
+      rows = [];
+      currentTotal = 0;
+      render();
+    }
+
+    try {
+      const client = window.ChantierProof.getClient();
+      const from = rows.length;
+      const to = from + pageSize - 1;
+      let query = client
+        .from("validations")
+        .select(validationColumns, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (activeFilter !== "all") {
+        query = query.eq("status", activeFilter);
+      }
+
+      const response = await query;
+
+      if (response.error) throw response.error;
+      rows = shouldReset ? (response.data || []) : rows.concat(response.data || []);
+      currentTotal = response.count || rows.length;
     } catch (error) {
       console.error("Load validations failed:", error);
       rows = [];
+      currentTotal = 0;
       showError(`Impossible de charger les validations : ${error.message || "verifie Supabase."}`);
     }
     render();
@@ -283,7 +333,8 @@
       if (response.error) throw response.error;
       setGeneratedLink(validationUrl(response.data.id));
       closeDialog();
-      await loadRows();
+      await loadSignedMonthCount();
+      await loadRows({ reset: true });
     } catch (error) {
       console.error("Create validation failed:", error);
       showModalError(`Creation impossible dans Supabase : ${error.message || "verifie les colonnes et policies RLS."}`);
@@ -294,8 +345,14 @@
     button.addEventListener("click", () => {
       activeFilter = button.dataset.filter;
       filterButtons.forEach((item) => item.classList.toggle("active", item === button));
-      render();
+      clearError();
+      loadRows({ reset: true });
     });
+  });
+
+  loadMoreButton?.addEventListener("click", async () => {
+    loadMoreButton.disabled = true;
+    await loadRows();
   });
 
   newButton.addEventListener("click", openDialog);
@@ -358,6 +415,9 @@
 
   window.lucide?.createIcons();
   requireSession().then((ok) => {
-    if (ok) loadRows();
+    if (ok) {
+      loadSignedMonthCount();
+      loadRows({ reset: true });
+    }
   });
 })();

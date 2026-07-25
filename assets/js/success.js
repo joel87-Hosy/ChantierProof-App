@@ -14,7 +14,27 @@
     let row = null;
     try {
       const client = window.ChantierProof.getClient();
-      const response = await client.from("validations").select("*").eq("id", id).single();
+      const response = await client
+        .from("validations")
+        .select([
+          "id",
+          "client_name",
+          "client_phone",
+          "intervention_title",
+          "intervention_price",
+          "gps_position",
+          "technician_name",
+          "technician_notes",
+          "signer_name",
+          "signed_at",
+          "photo_before_url",
+          "photo_after_url",
+          "signature_png_url",
+          "pdf_url",
+          "accounting_status"
+        ].join(","))
+        .eq("id", id)
+        .single();
       if (response.error) throw response.error;
       row = response.data;
       validationRow = row;
