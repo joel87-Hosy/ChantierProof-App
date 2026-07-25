@@ -38,8 +38,7 @@
     "intervention_title",
     "intervention_price",
     "status",
-    "signed_at",
-    "accounting_status"
+    "signed_at"
   ].join(",");
 
   async function requireSession() {
