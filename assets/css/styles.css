@@ -465,9 +465,33 @@ main > header {
   .md-col-span-2 { grid-column: span 2 / span 2; }
   .segmented { width: auto; }
   .qr-panel { align-items: center; flex-direction: row; }
+  .dashboard-layout {
+    align-items: start;
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 17rem minmax(0, 1fr);
+  }
+  .dashboard-layout > .dashboard-header {
+    display: contents;
+  }
+  .dashboard-layout > .dashboard-header > div:first-child {
+    background: rgba(255,255,255,.55);
+    border-bottom: 1px solid var(--slate-200);
+    border-radius: .5rem;
+    grid-column: 2;
+    padding: 1rem 1rem 1.5rem;
+  }
+  .dashboard-layout > section {
+    grid-column: 2;
+    margin-top: 0;
+  }
   .dashboard-actions {
-    align-items: flex-end;
+    align-items: stretch;
     flex: 0 0 17rem;
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: 1rem;
     width: 17rem;
   }
   .dashboard-menu-trigger { display: none; }
