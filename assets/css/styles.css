@@ -219,6 +219,7 @@ table { min-width: 1080px; }
 .badge-pending { background: var(--amber-100); color: var(--amber-800); }
 .badge-signed { background: var(--green-100); color: var(--green-700); }
 .badge-dispute { background: var(--red-50); color: var(--red-700); }
+.metric-card { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: .5rem; padding: 1rem; }
 .icon { height: 1rem; width: 1rem; }
 .icon-btn { align-items: center; background: #fff; border: 1px solid var(--slate-200); border-radius: .5rem; cursor: pointer; display: inline-flex; height: 2.5rem; justify-content: center; width: 2.5rem; }
 .icon-btn:hover { background: var(--slate-100); }
@@ -403,6 +404,22 @@ main > header {
 #users-link { order: 3; }
 #accounting-link { order: 4; }
 #logout-btn { order: 5; }
+.accounting-period-tabs { width: 100%; }
+.accounting-analysis-grid { grid-template-columns: minmax(0, 1fr); }
+.analysis-panel { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: .5rem; min-width: 0; padding: 1rem; }
+.flow-chart { align-items: end; display: grid; gap: .5rem; grid-auto-flow: column; grid-auto-columns: minmax(1.75rem, 1fr); min-height: 9rem; overflow-x: auto; padding-bottom: .25rem; }
+.flow-bar-item { align-items: center; display: flex; flex-direction: column; gap: .5rem; min-width: 1.75rem; }
+.flow-bar-track { align-items: end; background: #fff; border: 1px solid var(--slate-200); border-radius: .5rem; display: flex; height: 7rem; overflow: hidden; width: 100%; }
+.flow-bar { background: linear-gradient(180deg, var(--blue-700), var(--cyan-600)); border-radius: .4rem .4rem 0 0; display: block; min-height: .5rem; width: 100%; }
+.flow-bar-label { color: var(--slate-500); font-size: .75rem; font-weight: 700; text-transform: capitalize; }
+.status-chart { display: grid; gap: .85rem; }
+.status-meter { background: #fff; border: 1px solid var(--slate-200); border-radius: 9999px; display: flex; height: 1rem; overflow: hidden; }
+.status-meter-pending { background: var(--amber-100); display: block; }
+.status-meter-processed { background: var(--green-100); display: block; }
+.status-legend { color: var(--slate-600); display: flex; flex-wrap: wrap; font-size: .875rem; font-weight: 700; gap: .75rem 1rem; }
+.legend-dot { border-radius: 9999px; display: inline-flex; height: .65rem; margin-right: .4rem; width: .65rem; }
+.legend-pending { background: var(--amber-800); }
+.legend-processed { background: var(--green-700); }
 .preview-grid {
   display: grid;
   gap: 1rem;
@@ -504,6 +521,8 @@ main > header {
     flex-direction: column;
     padding: .6rem;
   }
+  .accounting-period-tabs { width: auto; }
+  .accounting-analysis-grid { grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr); }
 }
 
 @media (max-width: 420px) {

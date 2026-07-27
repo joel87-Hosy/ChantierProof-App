@@ -41,6 +41,7 @@
     "status",
     "signed_at"
   ].join(",");
+  const validationColumnsWithAccounting = `${validationColumns},accounting_status`;
 
   async function requireSession() {
     const client = window.ChantierProof.getClient();
@@ -280,7 +281,7 @@
       const to = from + pageSize - 1;
       let query = client
         .from("validations")
-        .select(validationColumns, { count: "exact" })
+        .select(validationColumnsWithAccounting, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -288,7 +289,21 @@
         query = query.eq("status", activeFilter);
       }
 
-      const response = await query;
+      let response = await query;
+
+      if (response.error?.code === "42703" && response.error.message?.includes("accounting_status")) {
+        let fallbackQuery = client
+          .from("validations")
+          .select(validationColumns, { count: "exact" })
+          .order("created_at", { ascending: false })
+          .range(from, to);
+
+        if (activeFilter !== "all") {
+          fallbackQuery = fallbackQuery.eq("status", activeFilter);
+        }
+
+        response = await fallbackQuery;
+      }
 
       if (response.error) throw response.error;
       rows = shouldReset ? (response.data || []) : rows.concat(response.data || []);

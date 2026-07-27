@@ -84,8 +84,23 @@
         .select("id")
         .single();
 
-      if (response.error) throw response.error;
-      accountingMessage.textContent = "Demande envoyee au compte comptable. Elle est disponible dans l'interface comptabilite.";
+      if (response.error && response.error.code !== "23505") throw response.error;
+      const statusResponse = await client
+        .from("validations")
+        .update({
+          pdf_url: pdfPath,
+          accounting_status: "sent_to_accounting",
+          sent_to_accounting_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (statusResponse.error) {
+        console.warn("Accounting status update failed:", statusResponse.error);
+      }
+
+      accountingMessage.textContent = response.error?.code === "23505"
+        ? "Cette validation avait deja une demande comptable. Le statut a ete actualise."
+        : "Demande envoyee au compte comptable. Elle est disponible dans l'interface comptabilite.";
       accountingMessage.classList.remove("hidden");
     } catch (error) {
       console.error("Send accounting failed:", error);

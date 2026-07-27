@@ -35,6 +35,61 @@
         </article>
       </section>
 
+      <section class="panel mt-6">
+        <div class="flex flex-col gap-3 md-flex-row md-items-center md-justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Point par periode</h2>
+            <p id="period-summary" class="mt-2 text-sm text-slate-600">Aucune donnee chargee.</p>
+          </div>
+          <div class="segmented accounting-period-tabs" role="tablist" aria-label="Periode d'analyse">
+            <button class="segmented-btn active" data-period="week" type="button">Semaine</button>
+            <button class="segmented-btn" data-period="month" type="button">Mois</button>
+            <button class="segmented-btn" data-period="year" type="button">Annee</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-4 md-grid-cols-3">
+          <article class="metric-card">
+            <p class="text-sm text-slate-500">Total periode</p>
+            <p id="period-total-count" class="mt-2 text-3xl font-bold">0</p>
+          </article>
+          <article class="metric-card">
+            <p class="text-sm text-slate-500">Montant potentiel</p>
+            <p id="period-total-amount" class="mt-2 text-3xl font-bold">-</p>
+          </article>
+          <article class="metric-card">
+            <p class="text-sm text-slate-500">Taux traite</p>
+            <p id="period-processed-rate" class="mt-2 text-3xl font-bold">0%</p>
+          </article>
+        </div>
+
+        <div class="mt-4 grid gap-4 accounting-analysis-grid">
+          <div class="analysis-panel">
+            <p class="text-sm font-semibold text-slate-700">Flux des demandes</p>
+            <div id="period-flow-chart" class="flow-chart mt-4"></div>
+          </div>
+          <div class="analysis-panel">
+            <p class="text-sm font-semibold text-slate-700">Repartition</p>
+            <div id="period-status-chart" class="status-chart mt-4"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 table-shell">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Periode</th>
+                <th class="px-4 py-3">Demandes</th>
+                <th class="px-4 py-3">A traiter</th>
+                <th class="px-4 py-3">Traitees</th>
+                <th class="px-4 py-3">Montant</th>
+              </tr>
+            </thead>
+            <tbody id="period-summary-table"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="mt-6">
         <div class="flex flex-col gap-3 md-flex-row md-items-center md-justify-between">
           <div class="segmented" role="tablist" aria-label="Filtres comptabilite">

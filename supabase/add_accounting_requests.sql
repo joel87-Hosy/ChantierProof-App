@@ -57,6 +57,19 @@ create policy "Public can create accounting request for signed validation"
     )
   );
 
+drop policy if exists "Public can update accounting status for signed validation"
+  on public.validations;
+
+create policy "Public can update accounting status for signed validation"
+  on public.validations
+  for update
+  to anon
+  using (status = 'signed'::public.validation_status)
+  with check (
+    status = 'signed'::public.validation_status
+    and accounting_status in ('not_sent', 'sent_to_accounting')
+  );
+
 drop policy if exists "Accountants can read accounting requests"
   on public.accounting_requests;
 
