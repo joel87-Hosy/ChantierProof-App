@@ -49,12 +49,8 @@ create policy "Public can create accounting request for signed validation"
   to anon
   with check (
     status = 'pending'
-    and exists (
-      select 1
-      from public.validations
-      where validations.id = accounting_requests.validation_id
-        and validations.status = 'signed'::public.validation_status
-    )
+    and validation_id is not null
+    and pdf_url is not null
   );
 
 drop policy if exists "Public can update accounting status for signed validation"

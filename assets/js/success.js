@@ -80,9 +80,7 @@
           pdf_url: pdfPath,
           status: "pending",
           requested_at: new Date().toISOString()
-        })
-        .select("id")
-        .single();
+        });
 
       if (response.error && response.error.code !== "23505") throw response.error;
       const statusResponse = await client
