@@ -47,6 +47,30 @@
     return new URL(`./v/validation.html?id=${encodeURIComponent(validationId)}`, window.location.href).href;
   }
 
+  function validationColumns(includeAccounting) {
+    const columns = [
+      "id",
+      "client_name",
+      "intervention_title",
+      "status",
+      "intervention_price",
+      "client_phone",
+      "gps_position",
+      "technician_name",
+      "technician_notes",
+      "signer_name",
+      "signed_at",
+      "photo_before_url",
+      "photo_after_url"
+    ];
+
+    if (includeAccounting) {
+      columns.push("accounting_status", "sent_to_accounting_at", "pdf_url");
+    }
+
+    return columns.join(",");
+  }
+
   async function resolveImageUrl(client, path) {
     if (!path) return null;
     const response = await client.storage
@@ -81,25 +105,20 @@
 
     try {
       const client = window.ChantierProof.getClient();
-      const response = await client
+      let response = await client
         .from("validations")
-        .select([
-          "id",
-          "client_name",
-          "intervention_title",
-          "status",
-          "intervention_price",
-          "client_phone",
-          "gps_position",
-          "technician_name",
-          "technician_notes",
-          "signer_name",
-          "signed_at",
-          "photo_before_url",
-          "photo_after_url"
-        ].join(","))
+        .select(validationColumns(true))
         .eq("id", id)
         .single();
+
+      if (response.error?.code === "42703") {
+        response = await client
+          .from("validations")
+          .select(validationColumns(false))
+          .eq("id", id)
+          .single();
+      }
+
       if (response.error) throw response.error;
 
       const row = response.data;
@@ -120,7 +139,22 @@
       notesEl.textContent = row.technician_notes || "Aucun commentaire pour le moment";
       signerEl.textContent = row.signer_name || "Non signe";
       signedAtEl.textContent = row.signed_at ? window.ChantierProof.formatDate(row.signed_at) : "En attente de validation";
-      accountingEl.textContent = "Non envoye";
+      accountingEl.textContent = row.accounting_status === "sent_to_accounting"
+        ? `Envoye au comptable le ${window.ChantierProof.formatDate(row.sent_to_accounting_at)}`
+        : "Non envoye";
+
+      if (row.pdf_url) {
+        pdfButton.classList.remove("hidden");
+        pdfButton.addEventListener("click", async () => {
+          try {
+            await window.ChantierProof.openPdf(client, row.pdf_url);
+          } catch (error) {
+            showError(error.message || "PDF indisponible.");
+          }
+        });
+      } else {
+        pdfButton.classList.add("hidden");
+      }
 
       const url = mapUrl(row.gps_position);
       if (url) {
