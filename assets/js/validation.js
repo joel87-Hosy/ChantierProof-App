@@ -45,6 +45,16 @@
     window.lucide?.createIcons();
   }
 
+  function disableValidationForm() {
+    form.querySelectorAll("input, button, textarea, canvas").forEach((element) => {
+      if (element.id !== "clear-signature") element.disabled = true;
+    });
+  }
+
+  function isExpired(value) {
+    return value && new Date(value).getTime() <= Date.now();
+  }
+
   function canvasToBlob(canvas, type, quality) {
     return new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {
@@ -104,26 +114,38 @@
 
     try {
       const client = window.ChantierProof.getClient();
-      const response = await client
+      let response = await client
         .from("validations")
-        .select("id,client_name,intervention_title,status")
+        .select("id,client_name,intervention_title,status,validation_link_expires_at")
         .eq("id", id)
         .single();
+
+      if (response.error?.code === "42703") {
+        response = await client
+          .from("validations")
+          .select("id,client_name,intervention_title,status")
+          .eq("id", id)
+          .single();
+      }
+
       if (response.error) throw response.error;
       validation = response.data;
     } catch (error) {
       console.error("Load validation failed:", error);
-      showError(`Validation introuvable dans Supabase : ${error.message || "verifie le lien genere."}`);
+      showError(`Validation introuvable ou expiree : ${error.message || "verifie le lien genere."}`);
       clientName.textContent = "Lien invalide";
       interventionTitle.textContent = "";
-      form.querySelectorAll("input, button, textarea, canvas").forEach((element) => {
-        if (element.id !== "clear-signature") element.disabled = true;
-      });
+      disableValidationForm();
       return;
     }
 
     clientName.textContent = validation.client_name;
     interventionTitle.textContent = validation.intervention_title;
+
+    if (isExpired(validation.validation_link_expires_at)) {
+      showError("Ce lien terrain n'est plus valide car la demande a deja ete envoyee au comptable.");
+      disableValidationForm();
+    }
   }
 
   async function uploadFile(client, file, path, label) {

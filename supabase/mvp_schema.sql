@@ -27,7 +27,8 @@ create table if not exists public.validations (
   signed_at timestamptz,
   pdf_url text,
   accounting_status text not null default 'not_sent',
-  sent_to_accounting_at timestamptz
+  sent_to_accounting_at timestamptz,
+  validation_link_expires_at timestamptz
 );
 
 do $$
@@ -79,7 +80,8 @@ alter table public.validations
   add column if not exists assigned_technician_id uuid references auth.users(id) on delete set null,
   add column if not exists pdf_url text,
   add column if not exists accounting_status text not null default 'not_sent',
-  add column if not exists sent_to_accounting_at timestamptz;
+  add column if not exists sent_to_accounting_at timestamptz,
+  add column if not exists validation_link_expires_at timestamptz;
 
 create index if not exists validations_status_idx
   on public.validations (status);
@@ -127,7 +129,13 @@ create policy "Public can read pending validations"
   on public.validations
   for select
   to anon
-  using (status = 'pending');
+  using (
+    status = 'pending'
+    and (
+      validation_link_expires_at is null
+      or validation_link_expires_at > now()
+    )
+  );
 
 drop policy if exists "Public can read signed validations"
   on public.validations;
@@ -136,7 +144,13 @@ create policy "Public can read signed validations"
   on public.validations
   for select
   to anon
-  using (status = 'signed');
+  using (
+    status = 'signed'
+    and (
+      validation_link_expires_at is null
+      or validation_link_expires_at > now()
+    )
+  );
 
 drop policy if exists "Public can seal pending validations"
   on public.validations;

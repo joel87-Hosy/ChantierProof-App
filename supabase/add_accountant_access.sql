@@ -1,3 +1,6 @@
+alter table public.validations
+  add column if not exists validation_link_expires_at timestamptz;
+
 drop policy if exists "Accountants can read signed validations"
   on public.validations;
 
@@ -26,6 +29,7 @@ create policy "Public can update accounting status for signed validation"
   with check (
     status = 'signed'::public.validation_status
     and accounting_status in ('not_sent', 'sent_to_accounting')
+    and validation_link_expires_at is not null
   );
 
 drop policy if exists "Accountants can read accounting requests"

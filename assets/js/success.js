@@ -83,14 +83,26 @@
         });
 
       if (response.error && response.error.code !== "23505") throw response.error;
-      const statusResponse = await client
+      let statusResponse = await client
         .from("validations")
         .update({
           pdf_url: pdfPath,
           accounting_status: "sent_to_accounting",
-          sent_to_accounting_at: new Date().toISOString()
+          sent_to_accounting_at: new Date().toISOString(),
+          validation_link_expires_at: new Date().toISOString()
         })
         .eq("id", id);
+
+      if (statusResponse.error?.code === "42703") {
+        statusResponse = await client
+          .from("validations")
+          .update({
+            pdf_url: pdfPath,
+            accounting_status: "sent_to_accounting",
+            sent_to_accounting_at: new Date().toISOString()
+          })
+          .eq("id", id);
+      }
 
       if (statusResponse.error) {
         console.warn("Accounting status update failed:", statusResponse.error);

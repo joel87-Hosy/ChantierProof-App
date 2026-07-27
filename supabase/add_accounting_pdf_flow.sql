@@ -1,7 +1,8 @@
 alter table public.validations
   add column if not exists pdf_url text,
   add column if not exists accounting_status text not null default 'not_sent',
-  add column if not exists sent_to_accounting_at timestamptz;
+  add column if not exists sent_to_accounting_at timestamptz,
+  add column if not exists validation_link_expires_at timestamptz;
 
 create table if not exists public.accounting_requests (
   id uuid primary key default gen_random_uuid(),
