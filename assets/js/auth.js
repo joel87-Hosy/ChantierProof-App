@@ -58,16 +58,35 @@
     const email = emailInput.value.trim().toLowerCase();
     if (!token) throw new Error("Le code d'invitation est obligatoire.");
 
-    const response = await client
-      .from("user_invitations")
-      .select("id,email,full_name,role,team_id,team_name")
-      .eq("token", token)
-      .eq("email", email)
-      .is("accepted_at", null)
-      .single();
+    let response = await client.rpc("get_pending_invitation", {
+      p_token: token,
+      p_email: email
+    });
+
+    if (response.error?.code === "42883" || response.error?.code === "PGRST202") {
+      response = await client
+        .from("user_invitations")
+        .select("id,email,full_name,role,team_id,team_name,company_id")
+        .eq("token", token)
+        .eq("email", email)
+        .is("accepted_at", null)
+        .single();
+    }
+
+    if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
+      response = await client
+        .from("user_invitations")
+        .select("id,email,full_name,role,team_id,team_name")
+        .eq("token", token)
+        .eq("email", email)
+        .is("accepted_at", null)
+        .single();
+    }
 
     if (response.error) throw new Error("Invitation introuvable ou deja utilisee.");
-    return response.data;
+    const data = Array.isArray(response.data) ? response.data[0] : response.data;
+    if (!data) throw new Error("Invitation introuvable ou deja utilisee.");
+    return data;
   }
 
   async function handleLogin() {
@@ -77,13 +96,38 @@
     });
 
     if (response.error) throw response.error;
-    const profileResponse = await client
+    let profileResponse = await client
       .from("profiles")
-      .select("role")
+      .select("role,company_id")
       .eq("id", response.data.user.id)
       .maybeSingle();
+    if (profileResponse.error?.code === "42703" && profileResponse.error.message?.includes("company_id")) {
+      profileResponse = await client
+        .from("profiles")
+        .select("role")
+        .eq("id", response.data.user.id)
+        .maybeSingle();
+    }
+
     const role = profileResponse.data?.role;
-    window.location.href = role === "accountant" ? "./accounting.html" : "./dashboard.html";
+    if (role === "super_admin") {
+      window.location.href = "./super-admin.html";
+    } else {
+      if (profileResponse.data?.company_id) {
+        const companyResponse = await client
+          .from("companies")
+          .select("status")
+          .eq("id", profileResponse.data.company_id)
+          .maybeSingle();
+
+        if (!companyResponse.error && companyResponse.data?.status === "suspended") {
+          await client.auth.signOut();
+          throw new Error("Votre entreprise est suspendue. Contactez le support ChantierProof.");
+        }
+      }
+
+      window.location.href = role === "accountant" ? "./accounting.html" : "./dashboard.html";
+    }
   }
 
   async function handleInviteActivation() {
@@ -108,16 +152,28 @@
       return;
     }
 
-    const profileResponse = await client.from("profiles").upsert({
+    const profilePayload = {
       id: response.data.user.id,
       email: response.data.user.email,
       full_name: invitation.full_name,
       role: invitation.role,
       team_id: invitation.team_id,
       team_name: invitation.team_name
-    });
+    };
 
-    if (profileResponse.error) throw profileResponse.error;
+    if (invitation.company_id) {
+      profilePayload.company_id = invitation.company_id;
+    }
+
+    const profileResponse = await client.from("profiles").upsert(profilePayload);
+
+    if (profileResponse.error?.code === "42703" && profileResponse.error.message?.includes("company_id")) {
+      delete profilePayload.company_id;
+      const fallbackResponse = await client.from("profiles").upsert(profilePayload);
+      if (fallbackResponse.error) throw fallbackResponse.error;
+    } else if (profileResponse.error) {
+      throw profileResponse.error;
+    }
 
     await client
       .from("user_invitations")

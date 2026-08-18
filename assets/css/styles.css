@@ -42,6 +42,7 @@ table { min-width: 1080px; }
 .max-w-2xl { max-width: 42rem; }
 .max-w-5xl { max-width: 64rem; }
 .max-w-6xl { max-width: 72rem; }
+.max-w-7xl { max-width: 80rem; }
 .mx-auto { margin-left: auto; margin-right: auto; }
 .mt-1 { margin-top: .25rem; }
 .mt-2 { margin-top: .5rem; }
@@ -403,7 +404,8 @@ main > header {
 #profile-link { order: 2; }
 #users-link { order: 3; }
 #accounting-link { order: 4; }
-#logout-btn { order: 5; }
+#super-admin-link { order: 5; }
+#logout-btn { order: 6; }
 .accounting-period-tabs { width: 100%; }
 .accounting-analysis-grid { grid-template-columns: minmax(0, 1fr); }
 .analysis-panel { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: .5rem; min-width: 0; padding: 1rem; }
@@ -467,6 +469,9 @@ main > header {
   line-height: 1.5rem;
   padding: .75rem;
 }
+.super-admin-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
 
 @media (min-width: 640px) {
   .sm-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -480,7 +485,9 @@ main > header {
   .md-items-center { align-items: center; }
   .md-justify-between { justify-content: space-between; }
   .md-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .md-grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .md-col-span-2 { grid-column: span 2 / span 2; }
+  .super-admin-grid { grid-template-columns: 24rem minmax(0, 1fr); }
   .segmented { width: auto; }
   .qr-panel { align-items: center; flex-direction: row; }
   .dashboard-layout {

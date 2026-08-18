@@ -31,12 +31,24 @@ PUBLIC_SITE_URL=https://your-public-site.example
 
 - `index.html`
 - `dashboard.html`
+- `super-admin.html`
 - `v/validation.html?id=<uuid>`
 - `v/success.html?id=<uuid>`
 - `conditions-utilisation.html`
 - `politique-confidentialite.html`
 - `mentions-legales.html`
 - `faq.html`
+
+## SaaS multi-entreprises
+
+Pour activer le back-office global et l'isolation multi-tenant :
+
+1. Executer `supabase/add_saas_multi_tenant.sql` dans Supabase SQL Editor.
+2. Creer ton utilisateur dans Supabase Auth.
+3. Remplacer l'email dans `supabase/promote_super_admin.sql`, puis executer le script.
+4. Te connecter sur `login.html` : le role `super_admin` redirige vers `super-admin.html`.
+
+Le Super Admin cree une entreprise cliente et genere le lien d'activation de son admin entreprise. Les donnees metier sont ensuite rattachees a `company_id`.
 
 ## Librairies CDN
 

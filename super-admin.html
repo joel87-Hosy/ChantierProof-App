@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Super Admin | ChantierProof</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+  </head>
+  <body class="min-h-screen dashboard-bg text-slate-950">
+    <main class="mx-auto w-full max-w-7xl px-4 py-6 md-px-8">
+      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md-flex-row md-items-center md-justify-between">
+        <div>
+          <div class="brand-lockup">
+            <span class="brand-mark">CP</span>
+            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">ChantierProof</p>
+          </div>
+          <h1 class="mt-1 text-3xl font-bold">Back-office Super Admin</h1>
+        </div>
+        <div class="flex flex-col gap-2 md-flex-row md-items-center">
+          <a class="btn btn-secondary" href="./dashboard.html">
+            <i data-lucide="layout-dashboard" class="icon"></i>
+            Dashboard
+          </a>
+          <button id="logout-btn" class="btn btn-secondary" type="button">
+            <i data-lucide="log-out" class="icon"></i>
+            Deconnexion
+          </button>
+        </div>
+      </header>
+
+      <section class="mt-6 grid gap-4 md-grid-cols-4">
+        <article class="panel">
+          <p class="text-sm text-slate-500">MRR</p>
+          <p id="stats-mrr" class="mt-2 text-3xl font-bold">-</p>
+        </article>
+        <article class="panel">
+          <p class="text-sm text-slate-500">Entreprises actives</p>
+          <p id="stats-active-companies" class="mt-2 text-3xl font-bold">-</p>
+        </article>
+        <article class="panel">
+          <p class="text-sm text-slate-500">Chantiers</p>
+          <p id="stats-chantiers" class="mt-2 text-3xl font-bold">-</p>
+        </article>
+        <article class="panel">
+          <p class="text-sm text-slate-500">Preuves terrain</p>
+          <p id="stats-proofs" class="mt-2 text-3xl font-bold">-</p>
+        </article>
+      </section>
+
+      <section class="mt-6 grid gap-4 super-admin-grid">
+        <form id="company-form" class="panel space-y-4">
+          <h2 class="text-lg font-semibold">Nouvelle entreprise cliente</h2>
+          <label class="block">
+            <span class="label">Nom commercial</span>
+            <input id="company-name" class="input mt-2" type="text" required>
+          </label>
+          <label class="block">
+            <span class="label">Raison sociale</span>
+            <input id="legal-name" class="input mt-2" type="text">
+          </label>
+          <label class="block">
+            <span class="label">Email entreprise</span>
+            <input id="company-email" class="input mt-2" type="email">
+          </label>
+          <label class="block">
+            <span class="label">Telephone</span>
+            <input id="company-phone" class="input mt-2" type="tel">
+          </label>
+          <label class="block">
+            <span class="label">Adresse</span>
+            <textarea id="company-address" class="input textarea mt-2"></textarea>
+          </label>
+          <div class="grid gap-4 sm-grid-cols-2">
+            <label class="block">
+              <span class="label">Plan</span>
+              <select id="subscription-plan" class="input mt-2">
+                <option value="starter">Starter</option>
+                <option value="pro">Pro</option>
+                <option value="enterprise">Enterprise</option>
+                <option value="free">Free</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="label">Prix mensuel</span>
+              <input id="monthly-price" class="input mt-2" type="number" min="0" step="1" value="49000">
+            </label>
+          </div>
+          <div class="border-b border-slate-200"></div>
+          <label class="block">
+            <span class="label">Nom admin client</span>
+            <input id="admin-full-name" class="input mt-2" type="text" required>
+          </label>
+          <label class="block">
+            <span class="label">Email admin client</span>
+            <input id="admin-email" class="input mt-2" type="email" required>
+          </label>
+          <p id="company-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+          <p id="company-success" class="hidden rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></p>
+          <button id="create-company-btn" class="btn btn-primary w-full" type="submit">
+            <i data-lucide="building-2" class="icon"></i>
+            Creer l'entreprise
+          </button>
+        </form>
+
+        <section class="panel min-w-0">
+          <div class="flex flex-col gap-3 md-flex-row md-items-center md-justify-between">
+            <h2 class="text-lg font-semibold">Entreprises clientes</h2>
+            <button id="refresh-btn" class="btn btn-secondary btn-sm" type="button">
+              <i data-lucide="refresh-cw" class="icon"></i>
+              Actualiser
+            </button>
+          </div>
+          <p id="super-admin-error" class="hidden mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+          <div class="mt-4 table-shell validations-scroll">
+            <table class="w-full border-collapse text-left text-sm">
+              <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="px-4 py-3">Entreprise</th>
+                  <th class="px-4 py-3">Statut</th>
+                  <th class="px-4 py-3">Plan</th>
+                  <th class="px-4 py-3">Utilisateurs</th>
+                  <th class="px-4 py-3">Chantiers</th>
+                  <th class="px-4 py-3">MRR</th>
+                  <th class="px-4 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="companies-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./lib/config.js"></script>
+    <script src="./assets/js/supabase.js"></script>
+    <script src="./assets/js/super-admin.js"></script>
+  </body>
+</html>

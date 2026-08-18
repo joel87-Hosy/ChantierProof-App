@@ -7,6 +7,7 @@
   const userChip = document.getElementById("user-chip");
   const usersLink = document.getElementById("users-link");
   const accountingLink = document.getElementById("accounting-link");
+  const superAdminLink = document.getElementById("super-admin-link");
   const menuButton = document.getElementById("dashboard-menu-btn");
   const actionMenu = document.getElementById("dashboard-action-menu");
   const copyButton = document.getElementById("copy-link-btn");
@@ -60,11 +61,19 @@
 
   async function loadProfile() {
     const client = window.ChantierProof.getClient();
-    const response = await client
+    let response = await client
       .from("profiles")
-      .select("full_name,role,avatar_url")
+      .select("full_name,role,avatar_url,company_id")
       .eq("id", currentUser.id)
       .maybeSingle();
+
+    if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
+      response = await client
+        .from("profiles")
+        .select("full_name,role,avatar_url")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+    }
 
     if (!response.error) {
       currentProfile = response.data;
@@ -83,6 +92,7 @@
     userChip.classList.remove("hidden");
     usersLink.classList.toggle("hidden", role !== "admin");
     accountingLink?.classList.toggle("hidden", !["admin", "accountant"].includes(role));
+    superAdminLink?.classList.toggle("hidden", role !== "super_admin");
   }
 
   async function signedAvatar(path) {
@@ -334,17 +344,32 @@
 
     try {
       const client = window.ChantierProof.getClient();
-      const response = await client
+      const payload = {
+        client_name: clientName,
+        client_phone: clientPhone,
+        intervention_title: interventionTitle,
+        intervention_price: price,
+        created_by: currentUser.id
+      };
+
+      if (currentProfile?.company_id) {
+        payload.company_id = currentProfile.company_id;
+      }
+
+      let response = await client
         .from("validations")
-        .insert({
-          client_name: clientName,
-          client_phone: clientPhone,
-          intervention_title: interventionTitle,
-          intervention_price: price,
-          created_by: currentUser.id
-        })
+        .insert(payload)
         .select("id")
         .single();
+
+      if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
+        delete payload.company_id;
+        response = await client
+          .from("validations")
+          .insert(payload)
+          .select("id")
+          .single();
+      }
 
       if (response.error) throw response.error;
       setGeneratedLink(validationUrl(response.data.id));

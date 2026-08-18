@@ -10,6 +10,7 @@
   const teamInput = document.getElementById("invite-team");
 
   let currentUser = null;
+  let currentProfile = null;
 
   function showError(message) {
     errorBox.textContent = message;
@@ -25,11 +26,19 @@
     }
 
     currentUser = session.user;
-    const profileResponse = await client
+    let profileResponse = await client
       .from("profiles")
-      .select("role")
+      .select("role,company_id")
       .eq("id", currentUser.id)
       .single();
+
+    if (profileResponse.error?.code === "42703" && profileResponse.error.message?.includes("company_id")) {
+      profileResponse = await client
+        .from("profiles")
+        .select("role")
+        .eq("id", currentUser.id)
+        .single();
+    }
 
     if (profileResponse.error || profileResponse.data.role !== "admin") {
       showError("Acces reserve a l'admin.");
@@ -37,6 +46,7 @@
       return false;
     }
 
+    currentProfile = profileResponse.data;
     return true;
   }
 
@@ -44,10 +54,22 @@
     const teamName = name.trim();
     if (!teamName) return null;
 
-    const insertResponse = await client.from("teams").insert({ name: teamName }).select("id").single();
+    const payload = { name: teamName };
+    if (currentProfile?.company_id) payload.company_id = currentProfile.company_id;
+
+    let insertResponse = await client.from("teams").insert(payload).select("id").single();
+    if (insertResponse.error?.code === "42703" && insertResponse.error.message?.includes("company_id")) {
+      delete payload.company_id;
+      insertResponse = await client.from("teams").insert(payload).select("id").single();
+    }
     if (!insertResponse.error) return insertResponse.data.id;
 
-    const selectResponse = await client.from("teams").select("id").eq("name", teamName).single();
+    let query = client.from("teams").select("id").eq("name", teamName);
+    if (currentProfile?.company_id) query = query.eq("company_id", currentProfile.company_id);
+    let selectResponse = await query.single();
+    if (selectResponse.error?.code === "42703" && selectResponse.error.message?.includes("company_id")) {
+      selectResponse = await client.from("teams").select("id").eq("name", teamName).single();
+    }
     return selectResponse.error ? null : selectResponse.data.id;
   }
 
@@ -125,14 +147,22 @@
 
     const teamName = teamInput.value.trim();
     const teamId = await resolveTeam(teamName);
-    const response = await client.from("user_invitations").insert({
+    const payload = {
       email: emailInput.value.trim().toLowerCase(),
       full_name: fullNameInput.value.trim(),
       role: roleInput.value,
       team_id: teamId,
       team_name: teamName || null,
       invited_by: currentUser.id
-    }).select("token,email").single();
+    };
+
+    if (currentProfile?.company_id) payload.company_id = currentProfile.company_id;
+
+    let response = await client.from("user_invitations").insert(payload).select("token,email").single();
+    if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
+      delete payload.company_id;
+      response = await client.from("user_invitations").insert(payload).select("token,email").single();
+    }
 
     if (response.error) {
       showError(response.error.message);
