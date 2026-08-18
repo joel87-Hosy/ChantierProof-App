@@ -15,7 +15,7 @@ select
   'super_admin',
   null
 from auth.users
-where lower(auth.users.email) = lower('TON_EMAIL_SUPER_ADMIN@EXEMPLE.COM')
+where lower(auth.users.email) = lower('joeloseepohonin@gmail.com')
 on conflict (id) do update set
   role = excluded.role,
   company_id = null,
