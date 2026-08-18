@@ -250,6 +250,27 @@ as $$
   limit 1
 $$;
 
+create or replace function public.delete_company_cascade(
+  p_company_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_super_admin() then
+    raise exception 'Access denied';
+  end if;
+
+  delete from public.profiles
+  where company_id = p_company_id;
+
+  delete from public.companies
+  where id = p_company_id;
+end;
+$$;
+
 alter table public.companies enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.profiles enable row level security;

@@ -179,10 +179,16 @@
           <td class="px-4 py-3 text-slate-600">${counts.validations[company.id] || 0}</td>
           <td class="px-4 py-3 text-slate-600">${formatMoney(subscription.monthly_price_cents, subscription.currency)}</td>
           <td class="px-4 py-3 text-right">
-            <button class="btn btn-secondary btn-sm company-status-btn" type="button" data-id="${escapeHtml(company.id)}" data-status="${nextStatus}">
-              <i data-lucide="${actionIcon}" class="icon"></i>
-              ${actionLabel}
-            </button>
+            <div class="row-actions row-actions-right">
+              <button class="btn btn-secondary btn-sm company-status-btn" type="button" data-id="${escapeHtml(company.id)}" data-status="${nextStatus}">
+                <i data-lucide="${actionIcon}" class="icon"></i>
+                ${actionLabel}
+              </button>
+              <button class="btn btn-danger btn-sm company-delete-btn" type="button" data-id="${escapeHtml(company.id)}" data-name="${escapeHtml(company.name)}">
+                <i data-lucide="trash-2" class="icon"></i>
+                Supprimer
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -274,10 +280,41 @@
     }
   }
 
+  async function deleteCompany(companyId, companyName, button) {
+    const confirmation = window.prompt(
+      `Suppression definitive de l'entreprise "${companyName}". Tape exactement SUPPRIMER pour confirmer.`
+    );
+
+    if (confirmation !== "SUPPRIMER") return;
+
+    button.disabled = true;
+    clearMessages();
+
+    try {
+      const response = await client.rpc("delete_company_cascade", {
+        p_company_id: companyId
+      });
+
+      if (response.error) throw response.error;
+      await loadCompanies();
+    } catch (error) {
+      console.error("Delete company failed:", error);
+      showError(error.message || "Suppression impossible.");
+      button.disabled = false;
+    }
+  }
+
   table.addEventListener("click", (event) => {
-    const button = event.target.closest(".company-status-btn");
-    if (!button) return;
-    updateCompanyStatus(button.dataset.id, button.dataset.status, button);
+    const statusButton = event.target.closest(".company-status-btn");
+    if (statusButton) {
+      updateCompanyStatus(statusButton.dataset.id, statusButton.dataset.status, statusButton);
+      return;
+    }
+
+    const deleteButton = event.target.closest(".company-delete-btn");
+    if (deleteButton) {
+      deleteCompany(deleteButton.dataset.id, deleteButton.dataset.name, deleteButton);
+    }
   });
 
   form.addEventListener("submit", createCompany);
