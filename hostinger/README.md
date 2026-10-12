@@ -14,6 +14,9 @@ The API currently provides:
 
 - `GET /api/index.php` for the database health check.
 - `GET /api/index.php?action=session` for the current profile and a CSRF token.
+- `PATCH /api/index.php?action=profile` for the authenticated user's full name
+  and team name, and `GET`/`POST /api/index.php?action=profile-avatar` for
+  private avatar retrieval and upload.
 - `POST /api/index.php?action=login` and `POST /api/index.php?action=logout`
   for PHP-session authentication.
 - `GET /api/index.php?action=companies`, `POST /api/index.php?action=companies`,
@@ -39,7 +42,8 @@ cookies are HttpOnly, SameSite=Lax, and Secure when served over HTTPS. State
 changing requests require the CSRF token returned by the session endpoint.
 Validation photos and signatures are kept outside the website document root
 under `/var/lib/chantierproof/storage` and are only served after checking their
-database reference and access policy.
+database reference and access policy. Profile avatars use the same private
+storage root and are served only to their signed-in owner.
 
 The public field form compresses photos to JPEG before upload. PHP-FPM must
 allow three files and a request of at least 24 MB, for example
@@ -68,11 +72,11 @@ support. For a new database, `schema.sql` already includes this column.
 ## Not ready for public cutover
 
 The login, invitation activation, Super Admin company management,
-collaborator invitations, validation dashboard, public field validation,
-recap, validation detail, and new validation-file storage now use the
-Hostinger API. The accounting, profile editing, PDF generation, password
-reset, and avatar storage are not migrated yet. Their navigation is hidden
-where appropriate. Do not deploy this intermediate state as the live
+collaborator invitations, profile editing and private avatar storage,
+validation dashboard, public field validation, recap, validation detail, and
+new validation-file storage now use the Hostinger API. The accounting, PDF
+generation, and password reset are not migrated yet. Their navigation is
+hidden where appropriate. Do not deploy this intermediate state as the live
 application or disable Supabase. Continue implementing and testing the
 remaining APIs and frontend flows before changing the public domain.
 

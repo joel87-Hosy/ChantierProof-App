@@ -1,5 +1,4 @@
 (function () {
-  const client = window.ChantierProof.getClient();
   const form = document.getElementById("profile-form");
   const avatarInput = document.getElementById("avatar-file");
   const avatarPreview = document.getElementById("avatar-preview");
@@ -13,6 +12,34 @@
 
   let currentUser = null;
   let currentProfile = null;
+  let csrfToken = "";
+
+  async function apiRequest(action, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (options.body && !(options.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (csrfToken && options.method && options.method !== "GET") {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+
+    const response = await fetch(`./api/index.php?action=${encodeURIComponent(action)}`, {
+      ...options,
+      headers,
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Le serveur a renvoyé une réponse invalide. Réessayez plus tard.");
+    }
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "La demande n'a pas pu aboutir.");
+    }
+    return result;
+  }
 
   function showError(message) {
     errorBox.textContent = message;
@@ -66,7 +93,10 @@
     canvas.height = size;
     const x = Math.round((size - width) / 2);
     const y = Math.round((size - height) / 2);
-    canvas.getContext("2d").drawImage(source, x, y, width, height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("La compression de la photo a échoué.");
+    context.drawImage(source, x, y, width, height);
+    source.close?.();
     const blob = await canvasToBlob(canvas, "image/jpeg", 0.82);
 
     return new File([blob], "avatar.jpg", {
@@ -75,80 +105,76 @@
     });
   }
 
-  async function signedAvatar(path) {
-    if (!path) return null;
-    const response = await client.storage.from("profile-avatars").createSignedUrl(path, 600);
-    return response.error ? null : response.data.signedUrl;
-  }
-
   async function loadProfile() {
-    const sessionResponse = await client.auth.getSession();
-    const session = sessionResponse.data.session;
-    if (!session) {
+    const session = await apiRequest("session");
+    if (!session.profile) {
       window.location.href = "./login.html";
       return;
     }
 
-    currentUser = session.user;
-    const response = await client
-      .from("profiles")
-      .select("id,email,full_name,role,team_id,team_name,avatar_url")
-      .eq("id", currentUser.id)
-      .maybeSingle();
-    currentProfile = response.data || {
-      id: currentUser.id,
-      email: currentUser.email,
-      full_name: currentUser.email,
-      role: "technician"
-    };
+    csrfToken = session.csrfToken;
+    currentProfile = session.profile;
+    currentUser = { id: currentProfile.id, email: currentProfile.email };
 
     nameInput.value = currentProfile.full_name || "";
     emailInput.value = currentUser.email || currentProfile.email || "";
     roleInput.value = currentProfile.role || "";
     teamInput.value = currentProfile.team_name || "";
 
-    const avatarUrl = await signedAvatar(currentProfile.avatar_url);
-    if (avatarUrl) {
-      avatarPreview.src = avatarUrl;
+    if (currentProfile.avatar_url && currentProfile.avatar_url.startsWith("profile-avatars/")) {
+      avatarPreview.src = `./api/index.php?action=profile-avatar&v=${Date.now()}`;
       avatarPreview.classList.remove("hidden");
       avatarPlaceholder.classList.add("hidden");
+    } else {
+      avatarPreview.removeAttribute("src");
+      avatarPreview.classList.add("hidden");
+      avatarPlaceholder.classList.remove("hidden");
     }
   }
 
   async function uploadAvatar() {
     const file = avatarInput.files && avatarInput.files[0];
-    if (!file) return currentProfile.avatar_url || null;
+    if (!file) return;
 
     const avatar = await compressAvatar(file);
-    const path = `${currentUser.id}/avatar-${Date.now()}.jpg`;
-    const response = await client.storage.from("profile-avatars").upload(path, avatar);
-    if (response.error) throw response.error;
-    return response.data.path;
+    const formData = new FormData();
+    formData.append("avatar", avatar);
+    await apiRequest("profile-avatar", {
+      method: "POST",
+      body: formData
+    });
   }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = form.querySelector('[type="submit"]');
+    submitButton.disabled = true;
+    let profileSaved = false;
     try {
-      const avatarPath = await uploadAvatar();
-      const response = await client.from("profiles").upsert({
-        id: currentUser.id,
-        email: currentUser.email,
-        full_name: nameInput.value.trim(),
-        role: currentProfile.role || "technician",
-        team_id: currentProfile.team_id || null,
-        team_name: teamInput.value.trim() || null,
-        avatar_url: avatarPath
+      const result = await apiRequest("profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          full_name: nameInput.value.trim(),
+          team_name: teamInput.value.trim() || null
+        })
       });
-
-      if (response.error) throw response.error;
+      currentProfile = result.profile;
+      profileSaved = true;
+      await uploadAvatar();
       showSuccess("Profil mis a jour.");
       await loadProfile();
     } catch (error) {
       console.error("Profile update failed:", error);
-      showError(error.message || "Impossible de mettre a jour le profil.");
+      const message = error.message || "Impossible de mettre a jour le profil.";
+      showError(profileSaved ? `Le nom et l’équipe sont enregistrés, mais la photo n’a pas pu être envoyée. ${message}` : message);
+    } finally {
+      submitButton.disabled = false;
     }
   });
 
-  loadProfile();
+  loadProfile().catch((error) => {
+    console.error("Profile loading failed:", error);
+    showError(error.message || "Impossible de charger le profil.");
+  });
   window.lucide?.createIcons();
 })();

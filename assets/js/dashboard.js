@@ -5,6 +5,7 @@
   const newButton = document.getElementById("new-validation-btn");
   const logoutButton = document.getElementById("logout-btn");
   const userChip = document.getElementById("user-chip");
+  const profileLink = document.getElementById("profile-link");
   const usersLink = document.getElementById("users-link");
   const accountingLink = document.getElementById("accounting-link");
   const superAdminLink = document.getElementById("super-admin-link");
@@ -85,6 +86,7 @@
       <span class="user-chip-text">${escapeHtml(name)} &middot; ${escapeHtml(role)}</span>
     `;
     userChip.classList.remove("hidden");
+    profileLink?.classList.remove("hidden");
     usersLink?.classList.add("hidden");
     accountingLink?.classList.add("hidden");
     superAdminLink?.classList.add("hidden");
@@ -97,8 +99,13 @@
   }
 
   async function signedAvatar(path) {
-    if (!path || !path.startsWith("validations/")) return null;
-    return `./api/index.php?action=asset&path=${encodeURIComponent(path)}`;
+    if (path?.startsWith("profile-avatars/")) {
+      return `./api/index.php?action=profile-avatar&v=${Date.now()}`;
+    }
+    if (path?.startsWith("validations/")) {
+      return `./api/index.php?action=asset&path=${encodeURIComponent(path)}`;
+    }
+    return null;
   }
 
   function getInitials(value) {

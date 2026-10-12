@@ -29,6 +29,8 @@ if (!in_array($action, [
     'session',
     'login',
     'logout',
+    'profile',
+    'profile-avatar',
     'invitation',
     'accept-invitation',
     'companies',
@@ -60,6 +62,103 @@ if ($action === 'session') {
         'csrfToken' => csrf_token(),
         'profile' => current_profile(),
     ]);
+}
+
+if ($action === 'profile') {
+    if ($method !== 'PATCH') {
+        header('Allow: PATCH');
+        send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+    }
+    require_csrf_token();
+
+    $profile = require_profile();
+    $payload = read_json_request();
+    $fullName = $payload['full_name'] ?? null;
+    $teamName = $payload['team_name'] ?? null;
+    if (
+        !is_string($fullName) || trim($fullName) === '' || text_length(trim($fullName)) > 255
+        || ($teamName !== null && (!is_string($teamName) || text_length(trim($teamName)) > 255))
+    ) {
+        send_json(400, ['ok' => false, 'error' => 'Vérifiez le nom complet et l’équipe.']);
+    }
+
+    try {
+        $statement = database()->prepare(
+            'UPDATE profiles
+             SET full_name = :full_name, team_name = :team_name
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'full_name' => trim($fullName),
+            'team_name' => is_string($teamName) && trim($teamName) !== '' ? trim($teamName) : null,
+            'id' => $profile['id'],
+        ]);
+        send_json(200, ['ok' => true, 'profile' => current_profile()]);
+    } catch (Throwable $error) {
+        error_log('ChantierProof profile update failed: ' . $error->getMessage());
+        send_json(503, ['ok' => false, 'error' => 'La mise à jour du profil est temporairement indisponible.']);
+    }
+}
+
+if ($action === 'profile-avatar') {
+    $profile = require_profile();
+
+    if ($method === 'POST') {
+        require_csrf_token();
+        validate_upload('avatar', ['image/jpeg'], 2 * 1024 * 1024);
+
+        $relativePath = 'profile-avatars/' . $profile['id'] . '/avatar-' . bin2hex(random_bytes(16)) . '.jpg';
+        $storedPath = store_upload('avatar', $relativePath);
+        try {
+            $statement = database()->prepare('UPDATE profiles SET avatar_url = :avatar_url WHERE id = :id');
+            $statement->execute([
+                'avatar_url' => $storedPath,
+                'id' => $profile['id'],
+            ]);
+        } catch (Throwable $error) {
+            if (is_file(storage_directory() . '/' . $storedPath)) {
+                unlink(storage_directory() . '/' . $storedPath);
+            }
+            error_log('ChantierProof avatar update failed: ' . $error->getMessage());
+            send_json(503, ['ok' => false, 'error' => 'La photo de profil est temporairement indisponible.']);
+        }
+
+        send_json(200, ['ok' => true, 'avatar_url' => $storedPath]);
+    }
+
+    if ($method !== 'GET') {
+        header('Allow: GET, POST');
+        send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+    }
+
+    $path = $profile['avatar_url'] ?? '';
+    if (
+        !is_string($path)
+        || !preg_match(
+            '#^profile-avatars/' . preg_quote((string) $profile['id'], '#') . '/avatar-[a-f0-9]{32}\.jpg$#',
+            $path
+        )
+    ) {
+        send_json(404, ['ok' => false, 'error' => 'Photo de profil introuvable.']);
+    }
+
+    $filePath = storage_directory() . '/' . $path;
+    if (!is_file($filePath) || !is_readable($filePath)) {
+        send_json(404, ['ok' => false, 'error' => 'Photo de profil introuvable.']);
+    }
+
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($filePath);
+    if ($mime !== 'image/jpeg') {
+        send_json(415, ['ok' => false, 'error' => 'Format de photo non autorisé.']);
+    }
+
+    header('Content-Type: image/jpeg');
+    header('Content-Length: ' . (string) filesize($filePath));
+    header('Content-Disposition: inline; filename="avatar.jpg"');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    readfile($filePath);
+    exit;
 }
 
 if ($action === 'login') {
