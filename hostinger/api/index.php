@@ -34,6 +34,7 @@ if (!in_array($action, [
     'companies',
     'company-status',
     'company-delete',
+    'invitations',
     'validations',
     'signed-month-count',
     'public-validation',
@@ -469,6 +470,154 @@ if ($action === 'company-delete') {
         send_json(503, ['ok' => false, 'error' => 'Suppression temporairement indisponible.']);
     }
     send_json(200, ['ok' => true]);
+}
+
+if ($action === 'invitations') {
+    $profile = require_profile(['admin']);
+    if (!is_string($profile['company_id']) || $profile['company_id'] === '') {
+        send_json(403, ['ok' => false, 'error' => 'Votre compte ne dépend d’aucune entreprise.']);
+    }
+
+    if ($method === 'GET') {
+        $statement = database()->prepare(
+            'SELECT id, created_at, email, full_name, role, team_name, token, expires_at
+             FROM user_invitations
+             WHERE company_id = :company_id AND accepted_at IS NULL
+             ORDER BY created_at DESC'
+        );
+        $statement->execute(['company_id' => $profile['company_id']]);
+        send_json(200, ['ok' => true, 'invitations' => $statement->fetchAll()]);
+    }
+
+    if ($method === 'POST') {
+        require_csrf_token();
+        $payload = read_json_request();
+        $email = $payload['email'] ?? null;
+        $fullName = $payload['full_name'] ?? null;
+        $role = $payload['role'] ?? null;
+        $teamName = $payload['team_name'] ?? null;
+
+        if (
+            !is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)
+            || !is_string($fullName) || trim($fullName) === '' || text_length(trim($fullName)) > 255
+            || !is_string($role) || !in_array($role, ['technician', 'accountant', 'manager', 'admin'], true)
+            || ($teamName !== null && (!is_string($teamName) || text_length(trim($teamName)) > 255))
+        ) {
+            send_json(400, ['ok' => false, 'error' => 'Vérifiez le nom, l’e-mail, le rôle et l’équipe.']);
+        }
+
+        $email = strtolower(trim($email));
+        $teamName = is_string($teamName) && trim($teamName) !== '' ? trim($teamName) : null;
+        $pdo = database();
+        $profileCheck = $pdo->prepare('SELECT 1 FROM profiles WHERE email = :email LIMIT 1');
+        $profileCheck->execute(['email' => $email]);
+        if ($profileCheck->fetchColumn() !== false) {
+            send_json(409, ['ok' => false, 'error' => 'Un compte existe déjà pour cette adresse e-mail.']);
+        }
+
+        $pendingCheck = $pdo->prepare(
+            'SELECT 1 FROM user_invitations
+             WHERE email = :email AND accepted_at IS NULL
+               AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP(6))
+             LIMIT 1'
+        );
+        $pendingCheck->execute(['email' => $email]);
+        if ($pendingCheck->fetchColumn() !== false) {
+            send_json(409, ['ok' => false, 'error' => 'Une invitation valide existe déjà pour cette adresse e-mail.']);
+        }
+
+        $invitationId = uuid_v4();
+        $invitationToken = uuid_v4();
+        try {
+            $pdo->beginTransaction();
+            $teamId = null;
+            if ($teamName !== null) {
+                $findTeam = $pdo->prepare(
+                    'SELECT id FROM teams WHERE company_id = :company_id AND name = :name LIMIT 1 FOR UPDATE'
+                );
+                $findTeam->execute([
+                    'company_id' => $profile['company_id'],
+                    'name' => $teamName,
+                ]);
+                $teamId = $findTeam->fetchColumn();
+                if (!is_string($teamId)) {
+                    $teamId = uuid_v4();
+                    $insertTeam = $pdo->prepare(
+                        'INSERT INTO teams (id, name, company_id) VALUES (:id, :name, :company_id)'
+                    );
+                    $insertTeam->execute([
+                        'id' => $teamId,
+                        'name' => $teamName,
+                        'company_id' => $profile['company_id'],
+                    ]);
+                }
+            }
+
+            $insertInvitation = $pdo->prepare(
+                'INSERT INTO user_invitations
+                    (id, email, full_name, role, team_id, team_name, token, invited_by, company_id, expires_at)
+                 VALUES
+                    (:id, :email, :full_name, :role, :team_id, :team_name, :token, :invited_by, :company_id,
+                     DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL 7 DAY))'
+            );
+            $insertInvitation->execute([
+                'id' => $invitationId,
+                'email' => $email,
+                'full_name' => trim($fullName),
+                'role' => $role,
+                'team_id' => $teamId,
+                'team_name' => $teamName,
+                'token' => $invitationToken,
+                'invited_by' => $profile['id'],
+                'company_id' => $profile['company_id'],
+            ]);
+            $pdo->commit();
+        } catch (Throwable $error) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            if ($error instanceof PDOException && $error->getCode() === '23000') {
+                send_json(409, ['ok' => false, 'error' => 'Cette équipe ou cette invitation existe déjà. Actualisez la page puis réessayez.']);
+            }
+            error_log('ChantierProof collaborator invitation failed: ' . $error->getMessage());
+            send_json(503, ['ok' => false, 'error' => 'Création de l’invitation temporairement indisponible.']);
+        }
+
+        send_json(201, [
+            'ok' => true,
+            'invitation' => [
+                'id' => $invitationId,
+                'token' => $invitationToken,
+                'email' => $email,
+                'expires_at' => (new DateTimeImmutable('+7 days', new DateTimeZone('UTC')))->format('Y-m-d H:i:s'),
+            ],
+        ]);
+    }
+
+    if ($method === 'DELETE') {
+        require_csrf_token();
+        $payload = read_json_request();
+        $id = $payload['id'] ?? null;
+        if (!is_string($id) || !preg_match('/^[0-9a-f-]{36}$/i', $id)) {
+            send_json(400, ['ok' => false, 'error' => 'Invitation invalide.']);
+        }
+
+        $delete = database()->prepare(
+            'DELETE FROM user_invitations
+             WHERE id = :id AND company_id = :company_id AND accepted_at IS NULL'
+        );
+        $delete->execute([
+            'id' => $id,
+            'company_id' => $profile['company_id'],
+        ]);
+        if ($delete->rowCount() !== 1) {
+            send_json(404, ['ok' => false, 'error' => 'Invitation introuvable ou déjà utilisée.']);
+        }
+        send_json(200, ['ok' => true]);
+    }
+
+    header('Allow: GET, POST, DELETE');
+    send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
 }
 
 if ($action === 'validations') {

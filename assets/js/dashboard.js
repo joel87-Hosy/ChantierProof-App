@@ -91,6 +91,9 @@
     if (currentProfile?.role === "super_admin") {
       superAdminLink?.classList.remove("hidden");
     }
+    if (currentProfile?.role === "admin" && currentProfile?.company_id) {
+      usersLink?.classList.remove("hidden");
+    }
   }
 
   async function signedAvatar(path) {

@@ -23,6 +23,9 @@ The API currently provides:
 - `GET /api/index.php?action=invitation&token=<uuid>&email=<email>` to check
   an invitation and `POST /api/index.php?action=accept-invitation` to set the
   password and activate the invited account.
+- `GET`/`POST`/`DELETE /api/index.php?action=invitations` for company-admin
+  collaborator invitations. These are restricted to the admin's own company
+  and expire after seven days.
 - `GET`/`POST /api/index.php?action=validations` to list and create
   company-scoped validations.
 - `GET /api/index.php?action=public-validation&id=<uuid>` and
@@ -64,12 +67,12 @@ support. For a new database, `schema.sql` already includes this column.
 
 ## Not ready for public cutover
 
-The login, invitation activation, Super Admin company management, validation
-dashboard, public field validation, recap, validation detail, and new
-validation-file storage now use the Hostinger API. The accounting, team
-management, collaborator invitations, profile editing, PDF generation,
-password reset, and avatar storage are not migrated yet. Their navigation is
-hidden where appropriate. Do not deploy this intermediate state as the live
+The login, invitation activation, Super Admin company management,
+collaborator invitations, validation dashboard, public field validation,
+recap, validation detail, and new validation-file storage now use the
+Hostinger API. The accounting, profile editing, PDF generation, password
+reset, and avatar storage are not migrated yet. Their navigation is hidden
+where appropriate. Do not deploy this intermediate state as the live
 application or disable Supabase. Continue implementing and testing the
 remaining APIs and frontend flows before changing the public domain.
 

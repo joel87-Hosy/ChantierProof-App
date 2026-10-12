@@ -1,83 +1,45 @@
 (function () {
-  const client = window.ChantierProof.getClient();
   const form = document.getElementById("invite-form");
   const errorBox = document.getElementById("invite-error");
   const linkBox = document.getElementById("invite-link-box");
   const table = document.getElementById("invitations-table");
+  const submitButton = form.querySelector('[type="submit"]');
   const fullNameInput = document.getElementById("invite-full-name");
   const emailInput = document.getElementById("invite-email");
   const roleInput = document.getElementById("invite-role");
   const teamInput = document.getElementById("invite-team");
+  let csrfToken = "";
 
-  let currentUser = null;
-  let currentProfile = null;
+  async function apiRequest(action, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (options.body) headers.set("Content-Type", "application/json");
+    if (csrfToken && options.method && options.method !== "GET") {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+
+    const response = await fetch(`./api/index.php?action=${encodeURIComponent(action)}`, {
+      ...options,
+      headers,
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Le serveur a renvoyé une réponse invalide. Réessayez plus tard.");
+    }
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "La demande n'a pas pu aboutir.");
+    }
+    return result;
+  }
 
   function showError(message) {
     errorBox.textContent = message;
     errorBox.classList.remove("hidden");
-  }
-
-  async function requireAdmin() {
-    const sessionResponse = await client.auth.getSession();
-    const session = sessionResponse.data.session;
-    if (!session) {
-      window.location.href = "./login.html";
-      return false;
-    }
-
-    currentUser = session.user;
-    let profileResponse = await client
-      .from("profiles")
-      .select("role,company_id")
-      .eq("id", currentUser.id)
-      .single();
-
-    if (profileResponse.error?.code === "42703" && profileResponse.error.message?.includes("company_id")) {
-      profileResponse = await client
-        .from("profiles")
-        .select("role")
-        .eq("id", currentUser.id)
-        .single();
-    }
-
-    if (profileResponse.error || profileResponse.data.role !== "admin") {
-      showError("Acces reserve a l'admin.");
-      form.querySelectorAll("input, select, button").forEach((el) => { el.disabled = true; });
-      return false;
-    }
-
-    currentProfile = profileResponse.data;
-    return true;
-  }
-
-  async function resolveTeam(name) {
-    const teamName = name.trim();
-    if (!teamName) return null;
-
-    const payload = { name: teamName };
-    if (currentProfile?.company_id) payload.company_id = currentProfile.company_id;
-
-    let insertResponse = await client.from("teams").insert(payload).select("id").single();
-    if (insertResponse.error?.code === "42703" && insertResponse.error.message?.includes("company_id")) {
-      delete payload.company_id;
-      insertResponse = await client.from("teams").insert(payload).select("id").single();
-    }
-    if (!insertResponse.error) return insertResponse.data.id;
-
-    let query = client.from("teams").select("id").eq("name", teamName);
-    if (currentProfile?.company_id) query = query.eq("company_id", currentProfile.company_id);
-    let selectResponse = await query.single();
-    if (selectResponse.error?.code === "42703" && selectResponse.error.message?.includes("company_id")) {
-      selectResponse = await client.from("teams").select("id").eq("name", teamName).single();
-    }
-    return selectResponse.error ? null : selectResponse.data.id;
-  }
-
-  function invitationUrl(token, email) {
-    const url = new URL("./login.html", window.location.href);
-    url.searchParams.set("invite", token);
-    url.searchParams.set("email", email);
-    return url.href;
+    linkBox.classList.add("hidden");
   }
 
   function escapeHtml(value) {
@@ -90,104 +52,127 @@
     })[char]);
   }
 
-  async function loadInvitations() {
-    const response = await client
-      .from("user_invitations")
-      .select("id,created_at,email,full_name,role,team_name,token")
-      .is("accepted_at", null)
-      .order("created_at", { ascending: false });
+  function formatDate(value) {
+    if (!value) return "-";
+    const date = new Date(`${String(value).replace(" ", "T")}Z`);
+    if (Number.isNaN(date.getTime())) return "-";
+    return new Intl.DateTimeFormat("fr-FR", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC"
+    }).format(date);
+  }
 
-    if (response.error) {
-      showError(response.error.message);
-      return;
+  function invitationUrl(token, email) {
+    const url = new URL("./login.html", window.location.href);
+    url.searchParams.set("invite", token);
+    url.searchParams.set("email", email);
+    return url.href;
+  }
+
+  async function requireAdmin() {
+    const session = await apiRequest("session");
+    csrfToken = session.csrfToken;
+    if (!session.profile) {
+      window.location.href = "./login.html";
+      return false;
     }
+    if (session.profile.role !== "admin" || !session.profile.company_id) {
+      showError("Accès réservé à un administrateur d'entreprise.");
+      form.querySelectorAll("input, select, button").forEach((element) => {
+        element.disabled = true;
+      });
+      return false;
+    }
+    return true;
+  }
 
-    const rows = response.data || [];
-    table.innerHTML = rows.length ? rows.map((row) => `
-      <tr class="border-b">
-        <td class="px-4 py-3 font-medium">${escapeHtml(row.full_name || "-")}</td>
-        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.email)}</td>
-        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.role)}</td>
-        <td class="px-4 py-3 text-slate-600">${escapeHtml(row.team_name || "-")}</td>
-        <td class="px-4 py-3"><code>${escapeHtml(row.token)}</code></td>
-        <td class="px-4 py-3 text-right">
-          <button class="icon-btn icon-btn-danger delete-invitation" type="button" data-id="${escapeHtml(row.id)}" data-email="${escapeHtml(row.email)}" aria-label="Supprimer l'invitation de ${escapeHtml(row.email)}">
-            <i data-lucide="trash-2" class="icon"></i>
-          </button>
-        </td>
-      </tr>
-    `).join("") : '<tr><td class="px-4 py-3 text-slate-500" colspan="6">Aucune invitation en attente.</td></tr>';
+  async function loadInvitations() {
+    const result = await apiRequest("invitations");
+    const rows = result.invitations || [];
+    table.innerHTML = rows.length ? rows.map((row) => {
+      const isExpired = row.expires_at && new Date(`${String(row.expires_at).replace(" ", "T")}Z`) <= new Date();
+      const link = invitationUrl(row.token, row.email);
+      return `
+        <tr class="border-b">
+          <td class="px-4 py-3 font-medium">${escapeHtml(row.full_name || "-")}</td>
+          <td class="px-4 py-3 text-slate-600">${escapeHtml(row.email)}</td>
+          <td class="px-4 py-3 text-slate-600">${escapeHtml(row.role)}</td>
+          <td class="px-4 py-3 text-slate-600">${escapeHtml(row.team_name || "-")}</td>
+          <td class="px-4 py-3 text-slate-600">
+            <a class="font-semibold text-blue-700" href="${escapeHtml(link)}" target="_blank" rel="noopener">Ouvrir le lien</a>
+            <p class="text-xs ${isExpired ? "text-red-600" : "text-slate-500"}">${isExpired ? "Invitation expirée" : `Jusqu'au ${escapeHtml(formatDate(row.expires_at))}`}</p>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <button class="icon-btn icon-btn-danger delete-invitation" type="button" data-id="${escapeHtml(row.id)}" data-email="${escapeHtml(row.email)}" aria-label="Supprimer l'invitation de ${escapeHtml(row.email)}">
+              <i data-lucide="trash-2" class="icon"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("") : '<tr><td class="px-4 py-3 text-slate-500" colspan="6">Aucune invitation en attente.</td></tr>';
     window.lucide?.createIcons();
   }
 
-  async function deleteInvitation(id, email) {
-    const shouldDelete = window.confirm(`Supprimer l'invitation en attente pour ${email} ?`);
-    if (!shouldDelete) return;
-
-    const response = await client
-      .from("user_invitations")
-      .delete()
-      .eq("id", id)
-      .is("accepted_at", null);
-
-    if (response.error) {
-      showError(response.error.message);
-      return;
-    }
-
-    linkBox.textContent = "Invitation supprimee.";
-    linkBox.classList.remove("hidden");
-    await loadInvitations();
-  }
-
-  form.addEventListener("submit", async (event) => {
+  async function createInvitation(event) {
     event.preventDefault();
     errorBox.classList.add("hidden");
     linkBox.classList.add("hidden");
+    submitButton.disabled = true;
 
-    const teamName = teamInput.value.trim();
-    const teamId = await resolveTeam(teamName);
-    const payload = {
-      email: emailInput.value.trim().toLowerCase(),
-      full_name: fullNameInput.value.trim(),
-      role: roleInput.value,
-      team_id: teamId,
-      team_name: teamName || null,
-      invited_by: currentUser.id
-    };
-
-    if (currentProfile?.company_id) payload.company_id = currentProfile.company_id;
-
-    let response = await client.from("user_invitations").insert(payload).select("token,email").single();
-    if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
-      delete payload.company_id;
-      response = await client.from("user_invitations").insert(payload).select("token,email").single();
+    try {
+      const result = await apiRequest("invitations", {
+        method: "POST",
+        body: JSON.stringify({
+          full_name: fullNameInput.value.trim(),
+          email: emailInput.value.trim().toLowerCase(),
+          role: roleInput.value,
+          team_name: teamInput.value.trim() || null
+        })
+      });
+      const link = invitationUrl(result.invitation.token, result.invitation.email);
+      linkBox.innerHTML = `Invitation créée. Transmettez ce lien au collaborateur (valide 7 jours) :<br><a class="font-semibold text-blue-700" href="${escapeHtml(link)}">${escapeHtml(link)}</a>`;
+      linkBox.classList.remove("hidden");
+      form.reset();
+      await loadInvitations();
+    } catch (error) {
+      console.error("Create collaborator invitation failed:", error);
+      showError(error.message || "Impossible de créer l'invitation.");
+    } finally {
+      submitButton.disabled = false;
     }
+  }
 
-    if (response.error) {
-      showError(response.error.message);
-      return;
-    }
-
-    const link = invitationUrl(response.data.token, response.data.email);
-    linkBox.innerHTML = `Invitation creee. Donnez ce lien au collaborateur : <br><a class="font-semibold text-blue-700" href="${link}">${link}</a>`;
-    linkBox.classList.remove("hidden");
-    form.reset();
-    await loadInvitations();
-  });
-
-  table.addEventListener("click", async (event) => {
-    const button = event.target.closest(".delete-invitation");
-    if (!button) return;
-
+  async function deleteInvitation(id, email, button) {
+    if (!window.confirm(`Supprimer l'invitation en attente pour ${email} ?`)) return;
     button.disabled = true;
     errorBox.classList.add("hidden");
-    await deleteInvitation(button.dataset.id, button.dataset.email);
-    button.disabled = false;
+    try {
+      await apiRequest("invitations", {
+        method: "DELETE",
+        body: JSON.stringify({ id })
+      });
+      linkBox.textContent = "Invitation supprimée.";
+      linkBox.classList.remove("hidden");
+      await loadInvitations();
+    } catch (error) {
+      console.error("Delete collaborator invitation failed:", error);
+      showError(error.message || "Impossible de supprimer l'invitation.");
+      button.disabled = false;
+    }
+  }
+
+  form.addEventListener("submit", createInvitation);
+  table.addEventListener("click", (event) => {
+    const button = event.target.closest(".delete-invitation");
+    if (button) deleteInvitation(button.dataset.id, button.dataset.email, button);
   });
 
-  requireAdmin().then((ok) => {
-    if (ok) loadInvitations();
+  requireAdmin().then((isAdmin) => {
+    if (isAdmin) return loadInvitations();
+  }).catch((error) => {
+    console.error("Collaborator management initialization failed:", error);
+    showError(error.message || "Impossible de vérifier votre session.");
   });
   window.lucide?.createIcons();
 })();
