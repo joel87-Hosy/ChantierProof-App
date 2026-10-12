@@ -1364,6 +1364,20 @@ if ($action === 'asset') {
         }
     }
     if (!is_array($assetRow ?? null)) {
+        $statement = database()->prepare(
+            'SELECT v.id, v.status, v.validation_link_expires_at, v.company_id
+             FROM accounting_requests ar
+             INNER JOIN validations v ON v.id = ar.validation_id
+             WHERE ar.pdf_url = :path
+             LIMIT 1'
+        );
+        $statement->execute(['path' => $path]);
+        $assetRow = $statement->fetch();
+        if (is_array($assetRow)) {
+            $pathColumn = 'accounting_requests.pdf_url';
+        }
+    }
+    if (!is_array($assetRow ?? null)) {
         send_json(404, ['ok' => false, 'error' => 'Fichier introuvable.']);
     }
 
