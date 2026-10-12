@@ -47,46 +47,13 @@
     return new URL(`./v/validation.html?id=${encodeURIComponent(validationId)}`, window.location.href).href;
   }
 
-  function validationColumns(includeAccounting) {
-    const columns = [
-      "id",
-      "client_name",
-      "intervention_title",
-      "status",
-      "intervention_price",
-      "client_phone",
-      "gps_position",
-      "technician_name",
-      "technician_notes",
-      "signer_name",
-      "signed_at",
-      "photo_before_url",
-      "photo_after_url"
-    ];
-
-    if (includeAccounting) {
-      columns.push("accounting_status", "sent_to_accounting_at", "pdf_url");
-    }
-
-    return columns.join(",");
-  }
-
-  async function resolveImageUrl(client, path) {
+  function assetUrl(path) {
     if (!path) return null;
-    const response = await client.storage
-      .from(window.CHANTIERPROOF_CONFIG.storageBucket)
-      .createSignedUrl(path, 60 * 10);
-
-    if (response.error) {
-      console.warn("Signed image URL failed:", response.error);
-      return null;
-    }
-
-    return response.data.signedUrl;
+    return `./api/index.php?action=asset&path=${encodeURIComponent(path)}`;
   }
 
-  async function renderImage(client, element, path, alt) {
-    const url = await resolveImageUrl(client, path);
+  function renderImage(element, path, alt) {
+    const url = assetUrl(path);
     if (!url) {
       element.textContent = path
         ? "Photo enregistree, mais acces Storage indisponible"
@@ -104,24 +71,16 @@
     }
 
     try {
-      const client = window.ChantierProof.getClient();
-      let response = await client
-        .from("validations")
-        .select(validationColumns(true))
-        .eq("id", id)
-        .single();
-
-      if (response.error?.code === "42703") {
-        response = await client
-          .from("validations")
-          .select(validationColumns(false))
-          .eq("id", id)
-          .single();
+      const response = await fetch(`./api/index.php?action=validation-detail&id=${encodeURIComponent(id)}`, {
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        if (response.status === 401) window.location.href = "./login.html";
+        throw new Error(result.error || "Validation introuvable.");
       }
-
-      if (response.error) throw response.error;
-
-      const row = response.data;
+      const row = result.validation;
       pdfButton.onclick = null;
       fieldLink.href = validationUrl(row.id);
       clientEl.textContent = row.client_name || "-";
@@ -145,13 +104,7 @@
 
       if (row.pdf_url) {
         pdfButton.classList.remove("hidden");
-        pdfButton.addEventListener("click", async () => {
-          try {
-            await window.ChantierProof.openPdf(client, row.pdf_url);
-          } catch (error) {
-            showError(error.message || "PDF indisponible.");
-          }
-        });
+        pdfButton.onclick = () => window.open(assetUrl(row.pdf_url), "_blank", "noopener");
       } else {
         pdfButton.classList.add("hidden");
       }
@@ -162,14 +115,14 @@
         mapLink.classList.remove("hidden");
       }
 
-      await renderImage(client, beforeEl, row.photo_before_url, "Photo avant intervention");
-      await renderImage(client, afterEl, row.photo_after_url, "Photo apres intervention");
+      renderImage(beforeEl, row.photo_before_url, "Photo avant intervention");
+      renderImage(afterEl, row.photo_after_url, "Photo apres intervention");
       window.lucide?.createIcons();
     } catch (error) {
       console.error("Load validation detail failed:", error);
       clientEl.textContent = "Detail indisponible";
       titleEl.textContent = "";
-      showError(`Impossible de charger la validation : ${error.message || "verifie Supabase."}`);
+      showError(`Impossible de charger la validation : ${error.message || "réessayez."}`);
     }
   }
 

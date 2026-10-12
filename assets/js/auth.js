@@ -1,223 +1,171 @@
 (function () {
-  const client = window.ChantierProof.getClient();
   const form = document.getElementById("auth-form");
-  const loginTab = document.getElementById("login-tab");
-  const inviteTab = document.getElementById("invite-tab");
-  const title = document.getElementById("auth-title");
-  const copy = document.getElementById("auth-copy");
-  const submit = document.getElementById("auth-submit");
-  const errorBox = document.getElementById("auth-error");
-  const successBox = document.getElementById("auth-success");
-  const inviteTokenField = document.getElementById("invite-token-field");
-  const inviteTokenInput = document.getElementById("invite-token");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
+  const submit = document.getElementById("auth-submit");
+  const errorBox = document.getElementById("auth-error");
   const togglePassword = document.getElementById("toggle-password");
-  const config = window.CHANTIERPROOF_CONFIG || {};
+  const activationForm = document.getElementById("activation-form");
+  const activationEmail = document.getElementById("activation-email");
+  const activationPassword = document.getElementById("activation-password");
+  const activationCopy = document.getElementById("activation-copy");
+  const activationError = document.getElementById("activation-error");
+  const activationSubmit = document.getElementById("activation-submit");
+  const toggleActivationPassword = document.getElementById("toggle-activation-password");
+  const title = document.getElementById("auth-title");
+  const copy = document.getElementById("auth-copy");
+  let csrfToken = "";
+  let invitationToken = "";
+  submit.disabled = true;
 
-  let mode = "login";
+  async function request(action, options = {}) {
+    const { query = {}, ...fetchOptions } = options;
+    const headers = new Headers(fetchOptions.headers || {});
+    if (fetchOptions.body) headers.set("Content-Type", "application/json");
+    if (csrfToken && fetchOptions.method && fetchOptions.method !== "GET") {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
 
-  function getEmailRedirectUrl() {
-    const publicSiteUrl = (config.publicSiteUrl || "").replace(/\/$/, "");
-    if (publicSiteUrl) return `${publicSiteUrl}/login.html`;
-    return new URL("./login.html", window.location.href).href;
+    const params = new URLSearchParams({ action });
+    Object.entries(query).forEach(([key, value]) => params.set(key, String(value)));
+    const response = await fetch(`./api/index.php?${params.toString()}`, {
+      ...fetchOptions,
+      headers,
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Le serveur a renvoyé une réponse invalide. Réessayez plus tard.");
+    }
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "La demande n'a pas pu aboutir.");
+    }
+    return result;
   }
 
-  function setMode(nextMode) {
-    mode = nextMode;
-    const isInvite = mode === "invite";
-    loginTab.classList.toggle("active", !isInvite);
-    inviteTab.classList.toggle("active", isInvite);
-    inviteTokenField.classList.toggle("hidden", !isInvite);
-    title.textContent = isInvite ? "Activer une invitation" : "Connexion";
-    copy.textContent = isInvite
-      ? "Saisissez le code fourni par l'admin pour créer votre accès."
-      : "Accedez au dashboard de votre entreprise.";
-    submit.innerHTML = isInvite
-      ? '<i data-lucide="user-check" class="icon"></i>Activer mon compte'
-      : '<i data-lucide="log-in" class="icon"></i>Se connecter';
-    errorBox.classList.add("hidden");
-    successBox.classList.add("hidden");
-    window.lucide?.createIcons();
+  function redirectForProfile(profile) {
+    if (!profile || typeof profile.role !== "string") {
+      throw new Error("Le profil du compte est introuvable. Contactez votre administrateur.");
+    }
+    window.location.href = profile.role === "super_admin" ? "./super-admin.html" : "./dashboard.html";
   }
 
   function showError(message) {
     errorBox.textContent = message;
     errorBox.classList.remove("hidden");
-    successBox.classList.add("hidden");
   }
 
-  function showSuccess(message) {
-    successBox.textContent = message;
-    successBox.classList.remove("hidden");
-    errorBox.classList.add("hidden");
-  }
-
-  async function findInvitation() {
-    const token = inviteTokenInput.value.trim();
-    const email = emailInput.value.trim().toLowerCase();
-    if (!token) throw new Error("Le code d'invitation est obligatoire.");
-
-    let response = await client.rpc("get_pending_invitation", {
-      p_token: token,
-      p_email: email
-    });
-
-    if (response.error?.code === "42883" || response.error?.code === "PGRST202") {
-      response = await client
-        .from("user_invitations")
-        .select("id,email,full_name,role,team_id,team_name,company_id")
-        .eq("token", token)
-        .eq("email", email)
-        .is("accepted_at", null)
-        .single();
-    }
-
-    if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
-      response = await client
-        .from("user_invitations")
-        .select("id,email,full_name,role,team_id,team_name")
-        .eq("token", token)
-        .eq("email", email)
-        .is("accepted_at", null)
-        .single();
-    }
-
-    if (response.error) throw new Error("Invitation introuvable ou deja utilisee.");
-    const data = Array.isArray(response.data) ? response.data[0] : response.data;
-    if (!data) throw new Error("Invitation introuvable ou deja utilisee.");
-    return data;
-  }
-
-  async function handleLogin() {
-    const response = await client.auth.signInWithPassword({
-      email: emailInput.value.trim(),
-      password: passwordInput.value
-    });
-
-    if (response.error) throw response.error;
-    let profileResponse = await client
-      .from("profiles")
-      .select("role,company_id")
-      .eq("id", response.data.user.id)
-      .maybeSingle();
-    if (profileResponse.error?.code === "42703" && profileResponse.error.message?.includes("company_id")) {
-      profileResponse = await client
-        .from("profiles")
-        .select("role")
-        .eq("id", response.data.user.id)
-        .maybeSingle();
-    }
-
-    const role = profileResponse.data?.role;
-    if (role === "super_admin") {
-      window.location.href = "./super-admin.html";
-    } else {
-      if (profileResponse.data?.company_id) {
-        const companyResponse = await client
-          .from("companies")
-          .select("status")
-          .eq("id", profileResponse.data.company_id)
-          .maybeSingle();
-
-        if (!companyResponse.error && companyResponse.data?.status === "suspended") {
-          await client.auth.signOut();
-          throw new Error("Votre entreprise est suspendue. Contactez le support ChantierProof.");
-        }
-      }
-
-      window.location.href = role === "accountant" ? "./accounting.html" : "./dashboard.html";
-    }
-  }
-
-  async function handleInviteActivation() {
-    const invitation = await findInvitation();
-    const response = await client.auth.signUp({
-      email: emailInput.value.trim(),
-      password: passwordInput.value,
-      options: {
-        emailRedirectTo: getEmailRedirectUrl(),
-        data: {
-          full_name: invitation.full_name,
-          role: invitation.role,
-          team_name: invitation.team_name
-        }
-      }
-    });
-
-    if (response.error) throw response.error;
-
-    if (!response.data.session || !response.data.user) {
-      showSuccess("Compte cree. Verifiez votre email si Supabase demande une confirmation, puis connectez-vous.");
-      return;
-    }
-
-    const profilePayload = {
-      id: response.data.user.id,
-      email: response.data.user.email,
-      full_name: invitation.full_name,
-      role: invitation.role,
-      team_id: invitation.team_id,
-      team_name: invitation.team_name
-    };
-
-    if (invitation.company_id) {
-      profilePayload.company_id = invitation.company_id;
-    }
-
-    const profileResponse = await client.from("profiles").upsert(profilePayload);
-
-    if (profileResponse.error?.code === "42703" && profileResponse.error.message?.includes("company_id")) {
-      delete profilePayload.company_id;
-      const fallbackResponse = await client.from("profiles").upsert(profilePayload);
-      if (fallbackResponse.error) throw fallbackResponse.error;
-    } else if (profileResponse.error) {
-      throw profileResponse.error;
-    }
-
-    await client
-      .from("user_invitations")
-      .update({ accepted_at: new Date().toISOString() })
-      .eq("id", invitation.id);
-
-    window.location.href = invitation.role === "accountant" ? "./accounting.html" : "./profile.html";
+  function toggleVisibility(input, button) {
+    const shouldShow = input.type === "password";
+    input.type = shouldShow ? "text" : "password";
+    button.setAttribute("aria-label", shouldShow ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    button.setAttribute("aria-pressed", String(shouldShow));
+    button.innerHTML = `<i data-lucide="${shouldShow ? "eye-off" : "eye"}" class="icon"></i>`;
+    window.lucide?.createIcons();
   }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     submit.disabled = true;
-
+    errorBox.classList.add("hidden");
     try {
-      if (mode === "invite") {
-        await handleInviteActivation();
-      } else {
-        await handleLogin();
-      }
+      const result = await request("login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: emailInput.value.trim(),
+          password: passwordInput.value
+        })
+      });
+      csrfToken = result.csrfToken;
+      redirectForProfile(result.profile);
     } catch (error) {
-      console.error("Auth failed:", error);
-      showError(error.message || "Action impossible. Verifiez les informations saisies.");
+      console.error("Hostinger login failed:", error);
+      showError(error.message || "Connexion impossible. Vérifiez les informations saisies.");
     } finally {
       submit.disabled = false;
     }
   });
 
-  loginTab.addEventListener("click", () => setMode("login"));
-  inviteTab.addEventListener("click", () => setMode("invite"));
-  togglePassword.addEventListener("click", () => {
-    const shouldShow = passwordInput.type === "password";
-    passwordInput.type = shouldShow ? "text" : "password";
-    togglePassword.setAttribute("aria-label", shouldShow ? "Masquer le mot de passe" : "Afficher le mot de passe");
-    togglePassword.setAttribute("aria-pressed", String(shouldShow));
-    togglePassword.innerHTML = `<i data-lucide="${shouldShow ? "eye-off" : "eye"}" class="icon"></i>`;
-    window.lucide?.createIcons();
+  activationForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    activationSubmit.disabled = true;
+    activationError.classList.add("hidden");
+    try {
+      const result = await request("accept-invitation", {
+        method: "POST",
+        body: JSON.stringify({
+          token: invitationToken,
+          email: activationEmail.value,
+          password: activationPassword.value
+        })
+      });
+      csrfToken = result.csrfToken;
+      redirectForProfile(result.profile);
+    } catch (error) {
+      console.error("Invitation activation failed:", error);
+      activationError.textContent = error.message || "Impossible d'activer cette invitation.";
+      activationError.classList.remove("hidden");
+    } finally {
+      activationSubmit.disabled = false;
+    }
   });
 
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("invite")) {
-    inviteTokenInput.value = params.get("invite");
-    emailInput.value = params.get("email") || "";
-    setMode("invite");
-  } else {
-    setMode("login");
+  togglePassword.addEventListener("click", () => toggleVisibility(passwordInput, togglePassword));
+  toggleActivationPassword.addEventListener("click", () => toggleVisibility(activationPassword, toggleActivationPassword));
+  document.getElementById("return-login").addEventListener("click", () => {
+    window.location.href = "./login.html";
+  });
+
+  async function initialize() {
+    const params = new URLSearchParams(window.location.search);
+    invitationToken = params.get("invite") || "";
+    const invitedEmail = params.get("email") || "";
+    const isActivation = invitationToken !== "" || invitedEmail !== "";
+    if (isActivation) {
+      form.classList.add("hidden");
+      activationForm.classList.remove("hidden");
+      title.textContent = "Activer votre compte";
+      copy.textContent = "Définissez votre mot de passe pour finaliser l'invitation.";
+      activationEmail.value = invitedEmail;
+    }
+
+    try {
+      const session = await request("session");
+      csrfToken = session.csrfToken;
+      if (session.profile) {
+        redirectForProfile(session.profile);
+        return;
+      }
+
+      if (!isActivation) {
+        submit.disabled = false;
+        return;
+      }
+      if (!invitationToken || !invitedEmail) {
+        throw new Error("Le lien d'invitation est incomplet.");
+      }
+
+      const result = await request("invitation", {
+        query: { token: invitationToken, email: invitedEmail }
+      });
+      activationEmail.value = result.invitation.email;
+      activationCopy.textContent = `Bonjour ${result.invitation.full_name}, votre invitation comme ${result.invitation.role} est valide.`;
+      activationSubmit.disabled = false;
+    } catch (error) {
+      console.error("Hostinger session initialization failed:", error);
+      if (isActivation) {
+        activationError.textContent = error.message || "Cette invitation n'est plus valide.";
+        activationError.classList.remove("hidden");
+      } else {
+        showError(error.message || "Le service de connexion est indisponible.");
+      }
+    }
   }
+
+  initialize();
+  window.lucide?.createIcons();
 })();

@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS user_invitations (
   token CHAR(36) NOT NULL,
   invited_by CHAR(36) NULL,
   accepted_at DATETIME(6) NULL,
+  expires_at DATETIME(6) NULL,
   company_id CHAR(36) NULL,
   UNIQUE KEY user_invitations_token_unique (token),
   INDEX user_invitations_company_id_idx (company_id),

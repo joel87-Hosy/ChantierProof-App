@@ -22,6 +22,7 @@
   let validation = null;
   let beforeFile = null;
   let afterFile = null;
+  let csrfToken = "";
   const imageOptions = {
     maxWidth: 1600,
     maxHeight: 1600,
@@ -113,23 +114,23 @@
     }
 
     try {
-      const client = window.ChantierProof.getClient();
-      let response = await client
-        .from("validations")
-        .select("id,client_name,intervention_title,status,validation_link_expires_at")
-        .eq("id", id)
-        .single();
-
-      if (response.error?.code === "42703") {
-        response = await client
-          .from("validations")
-          .select("id,client_name,intervention_title,status")
-          .eq("id", id)
-          .single();
+      const sessionResponse = await fetch("../api/index.php?action=session", {
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+      const session = await sessionResponse.json();
+      if (!sessionResponse.ok || !session.ok) {
+        throw new Error(session.error || "Impossible de préparer la validation.");
       }
+      csrfToken = session.csrfToken;
 
-      if (response.error) throw response.error;
-      validation = response.data;
+      const response = await fetch(`../api/index.php?action=public-validation&id=${encodeURIComponent(id)}`, {
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || "Validation introuvable.");
+      validation = result.validation;
     } catch (error) {
       console.error("Load validation failed:", error);
       showError(`Validation introuvable ou expiree : ${error.message || "verifie le lien genere."}`);
@@ -145,18 +146,10 @@
     if (isExpired(validation.validation_link_expires_at)) {
       showError("Ce lien terrain n'est plus valide car la demande a deja ete envoyee au comptable.");
       disableValidationForm();
+    } else if (validation.status !== "pending") {
+      showError("Cette intervention a déjà été validée.");
+      disableValidationForm();
     }
-  }
-
-  async function uploadFile(client, file, path, label) {
-    if (!file) return null;
-    const response = await client.storage
-      .from(window.CHANTIERPROOF_CONFIG.storageBucket)
-      .upload(path, file);
-    if (response.error) {
-      throw new Error(`${label} : ${response.error.message}`);
-    }
-    return response.data.path;
   }
 
   form.addEventListener("submit", async (event) => {
@@ -188,38 +181,30 @@
     sealButton.textContent = "Scellement...";
 
     try {
-      const client = window.ChantierProof.getClient();
       const signatureBlob = await signature.toBlob();
-      const prefix = `${id}/${Date.now()}`;
       const compressedBefore = await compressImage(beforeFile, "Photo avant");
       const compressedAfter = await compressImage(afterFile, "Photo apres");
-      const beforePath = await uploadFile(client, compressedBefore, `${prefix}-before.jpg`, "Upload photo avant");
-      const afterPath = await uploadFile(client, compressedAfter, `${prefix}-after.jpg`, "Upload photo apres");
-      const signaturePath = await uploadFile(client, signatureBlob, `${prefix}-signature.png`, "Upload signature");
+      const payload = new FormData();
+      payload.set("id", id);
+      payload.set("technician_name", technicianNameInput.value.trim());
+      payload.set("gps_position", fieldGpsInput.value.trim());
+      payload.set("technician_notes", technicianNotesInput.value.trim());
+      payload.set("signer_name", signerInput.value.trim());
+      payload.set("consent", consentInput.checked ? "1" : "0");
+      payload.set("photo_before", compressedBefore, compressedBefore.name);
+      payload.set("photo_after", compressedAfter, compressedAfter.name);
+      payload.set("signature", signatureBlob, "signature.png");
 
-      const response = await client
-        .from("validations")
-        .update({
-          status: "signed",
-          photo_before_url: beforePath,
-          photo_after_url: afterPath,
-          signature_png_url: signaturePath,
-          technician_name: technicianNameInput.value.trim(),
-          gps_position: fieldGpsInput.value.trim(),
-          technician_notes: technicianNotesInput.value.trim() || null,
-          signer_name: signerInput.value.trim(),
-          signed_at: new Date().toISOString()
-        })
-        .eq("id", id)
-        .eq("status", "pending")
-        .select("id,photo_before_url,photo_after_url")
-        .single();
-
-      if (response.error) {
-        throw new Error(`Mise a jour validation : ${response.error.message}`);
-      }
-      if (!response.data?.photo_before_url || !response.data?.photo_after_url) {
-        throw new Error("Les photos ont ete envoyees, mais leurs chemins n'ont pas ete enregistres.");
+      const response = await fetch("../api/index.php?action=seal-validation", {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrfToken },
+        body: payload,
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Mise à jour de la validation impossible.");
       }
       window.location.href = `./success.html?id=${encodeURIComponent(id)}`;
     } catch (error) {

@@ -5,123 +5,44 @@
   const signerEl = document.getElementById("recap-signer");
   const dateEl = document.getElementById("recap-date");
   const detailLink = document.getElementById("success-detail-link");
-  const sendButton = document.getElementById("send-accounting-btn");
   const accountingMessage = document.getElementById("accounting-message");
   const accountingError = document.getElementById("accounting-error");
-  let validationRow = null;
+  const sendButton = document.getElementById("send-accounting-btn");
 
   async function loadRecap() {
-    let row = null;
-    try {
-      const client = window.ChantierProof.getClient();
-      const response = await client
-        .from("validations")
-        .select([
-          "id",
-          "client_name",
-          "client_phone",
-          "intervention_title",
-          "intervention_price",
-          "gps_position",
-          "technician_name",
-          "technician_notes",
-          "signer_name",
-          "signed_at",
-          "photo_before_url",
-          "photo_after_url",
-          "signature_png_url"
-        ].join(","))
-        .eq("id", id)
-        .single();
-      if (response.error) throw response.error;
-      row = response.data;
-      validationRow = row;
-    } catch (error) {
-      console.error("Load success recap failed:", error);
-      row = {
-        client_name: "-",
-        intervention_title: "-",
-        signer_name: "-",
-        signed_at: null
-      };
+    if (!id) {
+      throw new Error("Lien de validation invalide.");
+    }
+
+    const response = await fetch(`../api/index.php?action=public-validation&id=${encodeURIComponent(id)}`, {
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "Validation introuvable.");
+    const row = result.validation;
+
+    if (row.status !== "signed") {
+      throw new Error("La validation n’a pas encore été scellée.");
     }
 
     clientEl.textContent = row.client_name || "-";
     titleEl.textContent = row.intervention_title || "-";
     signerEl.textContent = row.signer_name || "-";
     dateEl.textContent = window.ChantierProof.formatDate(row.signed_at);
-    if (id) {
-      detailLink.href = `../validation-detail.html?id=${encodeURIComponent(id)}`;
-      detailLink.innerHTML = '<i data-lucide="file-check-2" class="icon"></i>Voir le detail';
-      window.lucide?.createIcons();
-    }
+    detailLink.href = `../validation-detail.html?id=${encodeURIComponent(id)}`;
   }
 
-  sendButton.addEventListener("click", async () => {
-    accountingMessage.classList.add("hidden");
-    accountingError.classList.add("hidden");
+  sendButton.disabled = true;
+  sendButton.classList.add("hidden");
+  accountingMessage.textContent = "L’envoi au comptable sera disponible après la migration du module comptabilité.";
+  accountingMessage.classList.remove("hidden");
 
-    if (!validationRow) {
-      accountingError.textContent = "Validation introuvable.";
-      accountingError.classList.remove("hidden");
-      return;
-    }
-
-    sendButton.disabled = true;
-    sendButton.textContent = "Generation du PDF...";
-
-    try {
-      const client = window.ChantierProof.getClient();
-      const pdfPath = await window.ChantierProof.uploadValidationPdf(client, validationRow);
-      const response = await client
-        .from("accounting_requests")
-        .insert({
-          validation_id: id,
-          pdf_url: pdfPath,
-          status: "pending",
-          requested_at: new Date().toISOString()
-        });
-
-      if (response.error && response.error.code !== "23505") throw response.error;
-      let statusResponse = await client
-        .from("validations")
-        .update({
-          pdf_url: pdfPath,
-          accounting_status: "sent_to_accounting",
-          sent_to_accounting_at: new Date().toISOString(),
-          validation_link_expires_at: new Date().toISOString()
-        })
-        .eq("id", id);
-
-      if (statusResponse.error?.code === "42703") {
-        statusResponse = await client
-          .from("validations")
-          .update({
-            pdf_url: pdfPath,
-            accounting_status: "sent_to_accounting",
-            sent_to_accounting_at: new Date().toISOString()
-          })
-          .eq("id", id);
-      }
-
-      if (statusResponse.error) {
-        console.warn("Accounting status update failed:", statusResponse.error);
-      }
-
-      accountingMessage.textContent = response.error?.code === "23505"
-        ? "Cette validation avait deja une demande comptable. Le statut a ete actualise."
-        : "Demande envoyee au compte comptable. Elle est disponible dans l'interface comptabilite.";
-      accountingMessage.classList.remove("hidden");
-    } catch (error) {
-      console.error("Send accounting failed:", error);
-      accountingError.textContent = error.message || "Impossible d'envoyer le PDF au comptable.";
-      accountingError.classList.remove("hidden");
-    } finally {
-      sendButton.disabled = false;
-      sendButton.innerHTML = '<i data-lucide="send" class="icon"></i>Generer et envoyer au comptable';
-      window.lucide?.createIcons();
-    }
+  loadRecap().catch((error) => {
+    console.error("Load Hostinger validation recap failed:", error);
+    accountingError.textContent = error.message || "Impossible de charger le récapitulatif.";
+    accountingError.classList.remove("hidden");
   });
 
-  loadRecap();
+  window.lucide?.createIcons();
 })();

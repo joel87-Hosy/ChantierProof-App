@@ -16,16 +16,7 @@
         <h1 id="auth-title" class="mt-5 text-3xl font-bold">Connexion</h1>
         <p id="auth-copy" class="mt-2 text-slate-600">Accedez au dashboard de votre entreprise.</p>
 
-        <div class="segmented mt-5" role="tablist" aria-label="Mode d'authentification">
-          <button id="login-tab" class="segmented-btn active" type="button">Connexion</button>
-          <button id="invite-tab" class="segmented-btn" type="button">Activer une invitation</button>
-        </div>
-
         <form id="auth-form" class="mt-5 space-y-4">
-          <label id="invite-token-field" class="block hidden">
-            <span class="label">Code d'invitation</span>
-            <input id="invite-token" class="input mt-2" type="text" autocomplete="off">
-          </label>
           <label class="block">
             <span class="label">Email</span>
             <input id="email" class="input mt-2" type="email" autocomplete="email" required>
@@ -33,7 +24,7 @@
           <label class="block">
             <span class="label">Mot de passe</span>
             <span class="password-field mt-2">
-              <input id="password" class="input password-input" type="password" autocomplete="current-password" minlength="6" required>
+              <input id="password" class="input password-input" type="password" autocomplete="current-password" minlength="12" required>
               <button id="toggle-password" class="password-toggle" type="button" aria-label="Afficher le mot de passe" aria-pressed="false">
                 <i data-lucide="eye" class="icon"></i>
               </button>
@@ -54,13 +45,34 @@
             <a class="text-blue-700 font-semibold" href="./politique-confidentialite.html">politique de confidentialite</a>.
           </p>
         </form>
+
+        <form id="activation-form" class="mt-5 hidden space-y-4">
+          <p id="activation-copy" class="text-slate-600"></p>
+          <label class="block">
+            <span class="label">Email de l'invitation</span>
+            <input id="activation-email" class="input mt-2" type="email" autocomplete="email" readonly required>
+          </label>
+          <label class="block">
+            <span class="label">Choisissez un mot de passe (12 caractères minimum)</span>
+            <span class="password-field mt-2">
+              <input id="activation-password" class="input password-input" type="password" autocomplete="new-password" minlength="12" required>
+              <button id="toggle-activation-password" class="password-toggle" type="button" aria-label="Afficher le mot de passe" aria-pressed="false">
+                <i data-lucide="eye" class="icon"></i>
+              </button>
+            </span>
+          </label>
+          <p id="activation-error" class="hidden rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+          <p id="activation-success" class="hidden rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></p>
+          <button id="activation-submit" class="btn btn-primary w-full" type="submit" disabled>
+            <i data-lucide="user-check" class="icon"></i>
+            Activer mon compte
+          </button>
+          <button id="return-login" class="btn btn-secondary w-full" type="button">Retour à la connexion</button>
+        </form>
       </section>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="./lib/config.js"></script>
-    <script src="./assets/js/supabase.js"></script>
     <script src="./assets/js/auth.js"></script>
   </body>
 </html>

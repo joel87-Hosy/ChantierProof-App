@@ -32,53 +32,48 @@
   let currentUser = null;
   let currentProfile = null;
   let currentTotal = 0;
+  let csrfToken = "";
   const pageSize = 50;
-  const validationColumns = [
-    "id",
-    "created_at",
-    "client_name",
-    "intervention_title",
-    "intervention_price",
-    "status",
-    "signed_at"
-  ].join(",");
-  const validationColumnsWithAccounting = `${validationColumns},accounting_status`;
+
+  async function apiRequest(action, options = {}) {
+    const { query = {}, ...fetchOptions } = options;
+    const headers = new Headers(fetchOptions.headers || {});
+    if (fetchOptions.body) headers.set("Content-Type", "application/json");
+    if (csrfToken && fetchOptions.method === "POST") headers.set("X-CSRF-Token", csrfToken);
+    const params = new URLSearchParams({ action });
+    Object.entries(query).forEach(([key, value]) => params.set(key, String(value)));
+    const response = await fetch(`./api/index.php?${params.toString()}`, {
+      ...fetchOptions,
+      headers,
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "La demande a échoué.");
+    return result;
+  }
 
   async function requireSession() {
-    const client = window.ChantierProof.getClient();
-    const sessionResponse = await client.auth.getSession();
-    const session = sessionResponse.data.session;
-
-    if (!session) {
+    let session;
+    try {
+      session = await apiRequest("session");
+    } catch (error) {
+      showError(error.message || "Impossible de vérifier votre session.");
+      return false;
+    }
+    if (!session.profile) {
       window.location.href = "./login.html";
       return false;
     }
 
-    currentUser = session.user;
+    csrfToken = session.csrfToken;
+    currentProfile = session.profile;
+    currentUser = { id: currentProfile.id, email: currentProfile.email };
     await loadProfile();
     return true;
   }
 
   async function loadProfile() {
-    const client = window.ChantierProof.getClient();
-    let response = await client
-      .from("profiles")
-      .select("full_name,role,avatar_url,company_id")
-      .eq("id", currentUser.id)
-      .maybeSingle();
-
-    if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
-      response = await client
-        .from("profiles")
-        .select("full_name,role,avatar_url")
-        .eq("id", currentUser.id)
-        .maybeSingle();
-    }
-
-    if (!response.error) {
-      currentProfile = response.data;
-    }
-
     const name = currentProfile?.full_name || currentUser.email;
     const role = currentProfile?.role || "user";
     const avatarUrl = await signedAvatar(currentProfile?.avatar_url);
@@ -90,16 +85,17 @@
       <span class="user-chip-text">${escapeHtml(name)} &middot; ${escapeHtml(role)}</span>
     `;
     userChip.classList.remove("hidden");
-    usersLink.classList.toggle("hidden", role !== "admin");
-    accountingLink?.classList.toggle("hidden", !["admin", "accountant"].includes(role));
-    superAdminLink?.classList.toggle("hidden", role !== "super_admin");
+    usersLink?.classList.add("hidden");
+    accountingLink?.classList.add("hidden");
+    superAdminLink?.classList.add("hidden");
+    if (currentProfile?.role === "super_admin") {
+      superAdminLink?.classList.remove("hidden");
+    }
   }
 
   async function signedAvatar(path) {
-    if (!path) return null;
-    const client = window.ChantierProof.getClient();
-    const response = await client.storage.from("profile-avatars").createSignedUrl(path, 600);
-    return response.error ? null : response.data.signedUrl;
+    if (!path || !path.startsWith("validations/")) return null;
+    return `./api/index.php?action=asset&path=${encodeURIComponent(path)}`;
   }
 
   function getInitials(value) {
@@ -258,19 +254,8 @@
 
   async function loadSignedMonthCount() {
     try {
-      const client = window.ChantierProof.getClient();
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const response = await client
-        .from("validations")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "signed")
-        .gte("signed_at", start.toISOString())
-        .lt("signed_at", end.toISOString());
-
-      if (response.error) throw response.error;
-      count.textContent = response.count || 0;
+      const response = await apiRequest("signed-month-count");
+      count.textContent = response.count;
     } catch (error) {
       console.error("Load signed month count failed:", error);
       count.textContent = "0";
@@ -286,38 +271,12 @@
     }
 
     try {
-      const client = window.ChantierProof.getClient();
       const from = rows.length;
-      const to = from + pageSize - 1;
-      let query = client
-        .from("validations")
-        .select(validationColumnsWithAccounting, { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(from, to);
-
-      if (activeFilter !== "all") {
-        query = query.eq("status", activeFilter);
-      }
-
-      let response = await query;
-
-      if (response.error?.code === "42703" && response.error.message?.includes("accounting_status")) {
-        let fallbackQuery = client
-          .from("validations")
-          .select(validationColumns, { count: "exact" })
-          .order("created_at", { ascending: false })
-          .range(from, to);
-
-        if (activeFilter !== "all") {
-          fallbackQuery = fallbackQuery.eq("status", activeFilter);
-        }
-
-        response = await fallbackQuery;
-      }
-
-      if (response.error) throw response.error;
-      rows = shouldReset ? (response.data || []) : rows.concat(response.data || []);
-      currentTotal = response.count || rows.length;
+      const response = await apiRequest("validations", {
+        query: { status: activeFilter, offset: from, limit: pageSize }
+      });
+      rows = shouldReset ? response.rows : rows.concat(response.rows);
+      currentTotal = response.total;
     } catch (error) {
       console.error("Load validations failed:", error);
       rows = [];
@@ -343,42 +302,22 @@
     }
 
     try {
-      const client = window.ChantierProof.getClient();
-      const payload = {
-        client_name: clientName,
-        client_phone: clientPhone,
-        intervention_title: interventionTitle,
-        intervention_price: price,
-        created_by: currentUser.id
-      };
-
-      if (currentProfile?.company_id) {
-        payload.company_id = currentProfile.company_id;
-      }
-
-      let response = await client
-        .from("validations")
-        .insert(payload)
-        .select("id")
-        .single();
-
-      if (response.error?.code === "42703" && response.error.message?.includes("company_id")) {
-        delete payload.company_id;
-        response = await client
-          .from("validations")
-          .insert(payload)
-          .select("id")
-          .single();
-      }
-
-      if (response.error) throw response.error;
-      setGeneratedLink(validationUrl(response.data.id));
+      const response = await apiRequest("validations", {
+        method: "POST",
+        body: JSON.stringify({
+          client_name: clientName,
+          client_phone: clientPhone,
+          intervention_title: interventionTitle,
+          intervention_price: price
+        })
+      });
+      setGeneratedLink(validationUrl(response.id));
       closeDialog();
       await loadSignedMonthCount();
       await loadRows({ reset: true });
     } catch (error) {
       console.error("Create validation failed:", error);
-      showModalError(`Creation impossible dans Supabase : ${error.message || "verifie les colonnes et policies RLS."}`);
+      showModalError(error.message || "Impossible de créer la validation.");
     }
   }
 
@@ -434,9 +373,12 @@
   }
 
   logoutButton.addEventListener("click", async () => {
-    const client = window.ChantierProof.getClient();
-    await client.auth.signOut();
-    window.location.href = "./login.html";
+    try {
+      await apiRequest("logout", { method: "POST", body: "{}" });
+      window.location.href = "./login.html";
+    } catch (error) {
+      showError(error.message || "Impossible de fermer la session.");
+    }
   });
 
   menuButton?.addEventListener("click", (event) => {
