@@ -66,6 +66,26 @@
           </div>
         </section>
       </section>
+      <section class="panel mt-6">
+        <h2 class="text-lg font-semibold">Comptes de l’entreprise</h2>
+        <p class="mt-2 text-sm text-slate-600">Générez un lien de réinitialisation à transmettre manuellement. Chaque lien expire après une heure et ne peut être utilisé qu’une seule fois.</p>
+        <div id="password-reset-link-box" class="hidden mt-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700"></div>
+        <p id="members-error" class="hidden mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+        <div class="mt-4 table-shell">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Nom</th>
+                <th class="px-4 py-3">Email</th>
+                <th class="px-4 py-3">Rôle</th>
+                <th class="px-4 py-3">Équipe</th>
+                <th class="px-4 py-3 text-right">Mot de passe</th>
+              </tr>
+            </thead>
+            <tbody id="company-users-table"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>

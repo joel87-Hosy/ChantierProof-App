@@ -38,17 +38,18 @@
     }).format(Number(value));
   }
 
-  async function signedUrl(client, path) {
+  function assetUrl(path) {
     if (!path) return null;
-    const response = await client.storage
-      .from(window.CHANTIERPROOF_CONFIG.storageBucket)
-      .createSignedUrl(path, 600);
-    return response.error ? null : response.data.signedUrl;
+    const url = new URL("/api/index.php", window.location.origin);
+    url.searchParams.set("action", "asset");
+    url.searchParams.set("path", path);
+    return url.href;
   }
 
   async function imageData(url) {
     if (!url) return null;
     const response = await fetch(url);
+    if (!response.ok) throw new Error("Impossible de charger une pièce de preuve pour le PDF.");
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -214,7 +215,7 @@
     doc.text("Image indisponible", x + width / 2, y + height / 2, { align: "center" });
   }
 
-  async function generateValidationPdf(client, row) {
+  async function generateValidationPdf(row) {
     await ensureJsPdf();
 
     const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
@@ -251,9 +252,9 @@
 
     addFooter(doc, 1);
 
-    const beforeUrl = await signedUrl(client, row.photo_before_url);
-    const afterUrl = await signedUrl(client, row.photo_after_url);
-    const signatureUrl = await signedUrl(client, row.signature_png_url);
+    const beforeUrl = assetUrl(row.photo_before_url);
+    const afterUrl = assetUrl(row.photo_after_url);
+    const signatureUrl = assetUrl(row.signature_png_url);
     const beforeImage = await imageData(beforeUrl);
     const afterImage = await imageData(afterUrl);
     const signatureImage = await imageData(signatureUrl);
@@ -280,25 +281,36 @@
     return doc;
   }
 
-  async function uploadValidationPdf(client, row) {
-    const doc = await generateValidationPdf(client, row);
+  async function submitAccountingRequest(row, csrfToken) {
+    const doc = await generateValidationPdf(row);
     const blob = doc.output("blob");
-    const path = `${row.id}/preuve-${Date.now()}.pdf`;
-    const response = await client.storage
-      .from(window.CHANTIERPROOF_CONFIG.storageBucket)
-      .upload(path, blob, { contentType: "application/pdf" });
-
-    if (response.error) throw response.error;
-    return path;
+    const formData = new FormData();
+    formData.append("id", row.id);
+    formData.append("pdf", blob, `preuve-${row.id}.pdf`);
+    const response = await fetch("/api/index.php?action=accounting-request", {
+      method: "POST",
+      headers: { "X-CSRF-Token": csrfToken },
+      credentials: "same-origin",
+      cache: "no-store",
+      body: formData
+    });
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Le serveur a renvoyé une réponse invalide.");
+    }
+    if (!response.ok || !result.ok) throw new Error(result.error || "L’envoi au comptable a échoué.");
+    return result;
   }
 
-  async function openPdf(client, path) {
-    const url = await signedUrl(client, path);
+  async function openPdf(path) {
+    const url = assetUrl(path);
     if (!url) throw new Error("PDF indisponible.");
     window.open(url, "_blank", "noopener");
   }
 
   window.ChantierProof.generateValidationPdf = generateValidationPdf;
-  window.ChantierProof.uploadValidationPdf = uploadValidationPdf;
+  window.ChantierProof.submitAccountingRequest = submitAccountingRequest;
   window.ChantierProof.openPdf = openPdf;
 })();

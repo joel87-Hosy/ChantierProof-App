@@ -18,10 +18,36 @@
 
   let activeFilter = "pending";
   let activePeriod = "week";
-  let currentUser = null;
-  let currentProfile = null;
+  let csrfToken = "";
   let rows = [];
   let allRows = [];
+
+  async function apiRequest(action, options = {}) {
+    const { query = {}, ...fetchOptions } = options;
+    const headers = new Headers(fetchOptions.headers || {});
+    if (fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (csrfToken && fetchOptions.method && fetchOptions.method !== "GET") {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+    const params = new URLSearchParams({ action });
+    Object.entries(query).forEach(([key, value]) => params.set(key, String(value)));
+    const response = await fetch(`/api/index.php?${params.toString()}`, {
+      ...fetchOptions,
+      headers,
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Le serveur a renvoyé une réponse invalide.");
+    }
+    if (!response.ok || !result.ok) throw new Error(result.error || "La demande a échoué.");
+    return result;
+  }
 
   function showError(message) {
     errorBox.textContent = message;
@@ -227,29 +253,13 @@
   }
 
   async function requireAccountingAccess() {
-    const client = window.ChantierProof.getClient();
-    const sessionResponse = await client.auth.getSession();
-    const session = sessionResponse.data.session;
-
-    if (!session) {
+    const session = await apiRequest("session");
+    if (!session.profile) {
       window.location.href = "./login.html";
       return false;
     }
-
-    currentUser = session.user;
-    const profileResponse = await client
-      .from("profiles")
-      .select("role,full_name,email")
-      .eq("id", currentUser.id)
-      .maybeSingle();
-
-    if (profileResponse.error) {
-      showError(profileResponse.error.message);
-      return false;
-    }
-
-    currentProfile = profileResponse.data || {};
-    if (!["admin", "accountant"].includes(currentProfile.role)) {
+    csrfToken = session.csrfToken;
+    if (!["admin", "accountant"].includes(session.profile.role) || !session.profile.company_id) {
       showError("Acces reserve au comptable ou a l'admin.");
       return false;
     }
@@ -299,40 +309,11 @@
     refreshButton.disabled = true;
 
     try {
-      const client = window.ChantierProof.getClient();
-      let query = client
-        .from("accounting_requests")
-        .select([
-          "id",
-          "created_at",
-          "status",
-          "pdf_url",
-          "validation:validations(id,client_name,intervention_title,intervention_price)"
-        ].join(","))
-        .order("created_at", { ascending: false });
-
-      if (activeFilter !== "all") {
-        query = query.eq("status", activeFilter);
-      }
-
-      const response = await query;
-      if (response.error) throw response.error;
-      rows = response.data || [];
+      const result = await apiRequest("accounting-requests");
+      allRows = result.requests || [];
+      rows = activeFilter === "all" ? allRows : allRows.filter((row) => row.status === activeFilter);
       render();
-
-      const statsResponse = await client
-        .from("accounting_requests")
-        .select([
-          "id",
-          "created_at",
-          "status",
-          "validation:validations(id,intervention_price)"
-        ].join(","))
-        .order("created_at", { ascending: false });
-      if (!statsResponse.error) {
-        allRows = statsResponse.data || [];
-        renderStats(allRows);
-      }
+      renderStats(allRows);
     } catch (error) {
       console.error("Load accounting requests failed:", error);
       rows = [];
@@ -345,17 +326,10 @@
   }
 
   async function markProcessed(id) {
-    const client = window.ChantierProof.getClient();
-    const response = await client
-      .from("accounting_requests")
-      .update({
-        status: "processed",
-        processed_at: new Date().toISOString(),
-        processed_by: currentUser.id
-      })
-      .eq("id", id);
-
-    if (response.error) throw response.error;
+    await apiRequest("accounting-requests", {
+      method: "PATCH",
+      body: JSON.stringify({ id })
+    });
   }
 
   filterButtons.forEach((button) => {
@@ -379,11 +353,10 @@
   table.addEventListener("click", async (event) => {
     const pdfButton = event.target.closest(".open-pdf");
     const processButton = event.target.closest(".process-request");
-    const client = window.ChantierProof.getClient();
 
     if (pdfButton) {
       try {
-        await window.ChantierProof.openPdf(client, pdfButton.dataset.pdf);
+        await window.ChantierProof.openPdf(pdfButton.dataset.pdf);
       } catch (error) {
         showError(error.message || "PDF indisponible.");
       }
@@ -404,13 +377,19 @@
   });
 
   logoutButton.addEventListener("click", async () => {
-    const client = window.ChantierProof.getClient();
-    await client.auth.signOut();
-    window.location.href = "./login.html";
+    try {
+      await apiRequest("logout", { method: "POST" });
+      window.location.href = "./login.html";
+    } catch (error) {
+      showError(error.message || "Déconnexion impossible.");
+    }
   });
 
   window.lucide?.createIcons();
   requireAccountingAccess().then((ok) => {
     if (ok) loadRequests();
+  }).catch((error) => {
+    console.error("Accounting initialization failed:", error);
+    showError(error.message || "Impossible de charger le module comptable.");
   });
 })();

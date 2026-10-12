@@ -31,12 +31,17 @@ if (!in_array($action, [
     'logout',
     'profile',
     'profile-avatar',
+    'company-users',
+    'password-reset-link',
+    'password-reset',
     'invitation',
     'accept-invitation',
     'companies',
     'company-status',
     'company-delete',
     'invitations',
+    'accounting-requests',
+    'accounting-request',
     'validations',
     'signed-month-count',
     'public-validation',
@@ -159,6 +164,146 @@ if ($action === 'profile-avatar') {
     header('Cache-Control: private, no-store');
     readfile($filePath);
     exit;
+}
+
+if ($action === 'company-users') {
+    if ($method !== 'GET') {
+        header('Allow: GET');
+        send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+    }
+    $profile = require_profile(['admin']);
+    if (!is_string($profile['company_id']) || $profile['company_id'] === '') {
+        send_json(403, ['ok' => false, 'error' => 'Votre compte ne dépend d’aucune entreprise.']);
+    }
+
+    try {
+        $statement = database()->prepare(
+            'SELECT id, email, full_name, role, team_name
+             FROM profiles
+             WHERE company_id = :company_id AND id <> :current_user
+             ORDER BY full_name, email'
+        );
+        $statement->execute([
+            'company_id' => $profile['company_id'],
+            'current_user' => $profile['id'],
+        ]);
+        send_json(200, ['ok' => true, 'users' => $statement->fetchAll()]);
+    } catch (Throwable $error) {
+        error_log('ChantierProof company user listing failed: ' . $error->getMessage());
+        send_json(503, ['ok' => false, 'error' => 'La liste des utilisateurs est temporairement indisponible.']);
+    }
+}
+
+if ($action === 'password-reset-link') {
+    if ($method !== 'POST') {
+        header('Allow: POST');
+        send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+    }
+    require_csrf_token();
+    $profile = require_profile(['admin']);
+    if (!is_string($profile['company_id']) || $profile['company_id'] === '') {
+        send_json(403, ['ok' => false, 'error' => 'Votre compte ne dépend d’aucune entreprise.']);
+    }
+
+    $payload = read_json_request();
+    $userId = $payload['user_id'] ?? null;
+    if (!is_string($userId) || !preg_match('/^[0-9a-f-]{36}$/i', $userId)) {
+        send_json(400, ['ok' => false, 'error' => 'Compte invalide.']);
+    }
+    if ($userId === $profile['id']) {
+        send_json(400, ['ok' => false, 'error' => 'Pour votre propre compte, utilisez le formulaire de profil.']);
+    }
+
+    $token = bin2hex(random_bytes(32));
+    try {
+        $statement = database()->prepare(
+            'UPDATE profiles
+             SET password_reset_token_hash = :token_hash,
+                 password_reset_expires_at = DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL 1 HOUR)
+             WHERE id = :id AND company_id = :company_id'
+        );
+        $statement->execute([
+            'token_hash' => hash('sha256', $token),
+            'id' => $userId,
+            'company_id' => $profile['company_id'],
+        ]);
+        if ($statement->rowCount() !== 1) {
+            send_json(404, ['ok' => false, 'error' => 'Utilisateur introuvable dans votre entreprise.']);
+        }
+        send_json(201, [
+            'ok' => true,
+            'token' => $token,
+            'expiresInMinutes' => 60,
+        ]);
+    } catch (Throwable $error) {
+        error_log('ChantierProof password reset link creation failed: ' . $error->getMessage());
+        send_json(503, ['ok' => false, 'error' => 'La création du lien est temporairement indisponible.']);
+    }
+}
+
+if ($action === 'password-reset') {
+    if ($method === 'GET') {
+        $token = $_GET['token'] ?? '';
+        if (!is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
+            send_json(400, ['ok' => false, 'error' => 'Lien de réinitialisation invalide.']);
+        }
+        try {
+            $statement = database()->prepare(
+                'SELECT email, full_name
+                 FROM profiles
+                 WHERE password_reset_token_hash = :token_hash
+                   AND password_reset_expires_at > CURRENT_TIMESTAMP(6)
+                 LIMIT 1'
+            );
+            $statement->execute(['token_hash' => hash('sha256', $token)]);
+            $user = $statement->fetch();
+            if (!is_array($user)) {
+                send_json(404, ['ok' => false, 'error' => 'Lien expiré ou déjà utilisé. Demandez-en un nouveau à votre administrateur.']);
+            }
+            send_json(200, ['ok' => true, 'email' => $user['email'], 'full_name' => $user['full_name']]);
+        } catch (Throwable $error) {
+            error_log('ChantierProof password reset link lookup failed: ' . $error->getMessage());
+            send_json(503, ['ok' => false, 'error' => 'La vérification du lien est temporairement indisponible.']);
+        }
+    }
+
+    if ($method !== 'POST') {
+        header('Allow: GET, POST');
+        send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+    }
+    require_csrf_token();
+    $payload = read_json_request();
+    $token = $payload['token'] ?? null;
+    $password = $payload['password'] ?? null;
+    if (
+        !is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)
+        || !is_string($password) || strlen($password) < 12 || strlen($password) > 4096
+    ) {
+        send_json(400, ['ok' => false, 'error' => 'Le mot de passe doit comporter au moins 12 caractères.']);
+    }
+
+    try {
+        $statement = database()->prepare(
+            'UPDATE profiles
+             SET password_hash = :password_hash,
+                 password_set_at = CURRENT_TIMESTAMP(6),
+                 password_reset_token_hash = NULL,
+                 password_reset_expires_at = NULL
+             WHERE password_reset_token_hash = :token_hash
+               AND password_reset_expires_at > CURRENT_TIMESTAMP(6)'
+        );
+        $statement->execute([
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'token_hash' => hash('sha256', $token),
+        ]);
+        if ($statement->rowCount() !== 1) {
+            send_json(409, ['ok' => false, 'error' => 'Lien expiré ou déjà utilisé. Demandez-en un nouveau à votre administrateur.']);
+        }
+        send_json(200, ['ok' => true]);
+    } catch (Throwable $error) {
+        error_log('ChantierProof password reset failed: ' . $error->getMessage());
+        send_json(503, ['ok' => false, 'error' => 'La réinitialisation est temporairement indisponible.']);
+    }
 }
 
 if ($action === 'login') {
@@ -719,6 +864,180 @@ if ($action === 'invitations') {
     send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
 }
 
+if ($action === 'accounting-requests') {
+    if ($method === 'GET') {
+        $profile = require_profile(['admin', 'accountant']);
+        if (!is_string($profile['company_id']) || $profile['company_id'] === '') {
+            send_json(403, ['ok' => false, 'error' => 'Votre compte ne dépend d’aucune entreprise.']);
+        }
+        $status = $_GET['status'] ?? 'all';
+        if (!is_string($status) || !in_array($status, ['all', 'pending', 'processed'], true)) {
+            send_json(400, ['ok' => false, 'error' => 'Filtre de comptabilité invalide.']);
+        }
+        $sql = 'SELECT r.id, r.created_at, r.status, r.pdf_url,
+                       v.id AS validation_id, v.client_name, v.intervention_title, v.intervention_price
+                FROM accounting_requests r
+                INNER JOIN validations v ON v.id = r.validation_id
+                WHERE v.company_id = :company_id';
+        $parameters = ['company_id' => $profile['company_id']];
+        if ($status !== 'all') {
+            $sql .= ' AND r.status = :status';
+            $parameters['status'] = $status;
+        }
+        try {
+            $sql .= ' ORDER BY r.created_at DESC';
+            $statement = database()->prepare($sql);
+            $statement->execute($parameters);
+            $rows = array_map(static function (array $row): array {
+                return [
+                    'id' => $row['id'],
+                    'created_at' => $row['created_at'],
+                    'status' => $row['status'],
+                    'pdf_url' => $row['pdf_url'],
+                    'validation' => [
+                        'id' => $row['validation_id'],
+                        'client_name' => $row['client_name'],
+                        'intervention_title' => $row['intervention_title'],
+                        'intervention_price' => $row['intervention_price'],
+                    ],
+                ];
+            }, $statement->fetchAll());
+            send_json(200, ['ok' => true, 'requests' => $rows]);
+        } catch (Throwable $error) {
+            error_log('ChantierProof accounting request listing failed: ' . $error->getMessage());
+            send_json(503, ['ok' => false, 'error' => 'La liste comptable est temporairement indisponible.']);
+        }
+    }
+
+    if ($method === 'PATCH') {
+        require_csrf_token();
+        $profile = require_profile(['admin', 'accountant']);
+        if (!is_string($profile['company_id']) || $profile['company_id'] === '') {
+            send_json(403, ['ok' => false, 'error' => 'Votre compte ne dépend d’aucune entreprise.']);
+        }
+        $payload = read_json_request();
+        $requestId = $payload['id'] ?? null;
+        if (!is_string($requestId) || !preg_match('/^[0-9a-f-]{36}$/i', $requestId)) {
+            send_json(400, ['ok' => false, 'error' => 'Demande comptable invalide.']);
+        }
+        try {
+            $statement = database()->prepare(
+                'UPDATE accounting_requests r
+                 INNER JOIN validations v ON v.id = r.validation_id
+                 SET r.status = :processed, r.processed_at = CURRENT_TIMESTAMP(6), r.processed_by = :user_id
+                 WHERE r.id = :id AND r.status = :pending AND v.company_id = :company_id'
+            );
+            $statement->execute([
+                'processed' => 'processed',
+                'user_id' => $profile['id'],
+                'id' => $requestId,
+                'pending' => 'pending',
+                'company_id' => $profile['company_id'],
+            ]);
+            if ($statement->rowCount() !== 1) {
+                send_json(409, ['ok' => false, 'error' => 'Demande introuvable ou déjà traitée.']);
+            }
+            send_json(200, ['ok' => true]);
+        } catch (Throwable $error) {
+            error_log('ChantierProof accounting request update failed: ' . $error->getMessage());
+            send_json(503, ['ok' => false, 'error' => 'Le traitement comptable est temporairement indisponible.']);
+        }
+    }
+
+    header('Allow: GET, PATCH');
+    send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+}
+
+if ($action === 'accounting-request') {
+    if ($method !== 'POST') {
+        header('Allow: POST');
+        send_json(405, ['ok' => false, 'error' => 'Method not allowed.']);
+    }
+    require_csrf_token();
+    $id = $_POST['id'] ?? '';
+    if (!is_string($id) || !preg_match('/^[0-9a-f-]{36}$/i', $id)) {
+        send_json(400, ['ok' => false, 'error' => 'Validation invalide.']);
+    }
+    $row = validation_by_id($id);
+    if (
+        $row === null || $row['status'] !== 'signed'
+        || ($row['validation_link_expires_at'] !== null
+            && strtotime($row['validation_link_expires_at']) <= time())
+    ) {
+        send_json(404, ['ok' => false, 'error' => 'Validation introuvable ou expirée.']);
+    }
+    try {
+        $existing = database()->prepare('SELECT id FROM accounting_requests WHERE validation_id = :id LIMIT 1');
+        $existing->execute(['id' => $id]);
+        if ($existing->fetchColumn() !== false) {
+            send_json(409, ['ok' => false, 'error' => 'Cette validation a déjà été envoyée à la comptabilité.']);
+        }
+    } catch (Throwable $error) {
+        error_log('ChantierProof accounting duplicate check failed: ' . $error->getMessage());
+        send_json(503, ['ok' => false, 'error' => 'Vérification comptable temporairement indisponible.']);
+    }
+
+    $file = $_FILES['pdf'] ?? null;
+    if (
+        !is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK
+        || !is_string($file['tmp_name'] ?? null) || !is_uploaded_file($file['tmp_name'])
+        || !is_int($file['size'] ?? null) || $file['size'] < 8 || $file['size'] > 8 * 1024 * 1024
+    ) {
+        send_json(413, ['ok' => false, 'error' => 'Le PDF est absent, invalide ou dépasse 8 Mo.']);
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    $signature = file_get_contents($file['tmp_name'], false, null, 0, 5);
+    if ($mime !== 'application/pdf' || $signature !== '%PDF-') {
+        send_json(415, ['ok' => false, 'error' => 'Le fichier transmis doit être un PDF valide.']);
+    }
+
+    $relativePath = 'validations/' . $id . '/preuve-' . bin2hex(random_bytes(12)) . '.pdf';
+    $storedPath = store_upload('pdf', $relativePath);
+    $pdo = database();
+    try {
+        $pdo->beginTransaction();
+        $update = $pdo->prepare(
+            'UPDATE validations
+             SET pdf_url = :pdf_url, accounting_status = :accounting_status,
+                 sent_to_accounting_at = CURRENT_TIMESTAMP(6)
+             WHERE id = :id AND status = :signed_status
+               AND (validation_link_expires_at IS NULL OR validation_link_expires_at > CURRENT_TIMESTAMP(6))'
+        );
+        $update->execute([
+            'pdf_url' => $storedPath,
+            'accounting_status' => 'sent_to_accounting',
+            'id' => $id,
+            'signed_status' => 'signed',
+        ]);
+        if ($update->rowCount() !== 1) {
+            $pdo->rollBack();
+            unlink(storage_directory() . '/' . $storedPath);
+            send_json(409, ['ok' => false, 'error' => 'La validation a expiré ou a déjà été envoyée.']);
+        }
+        $insert = $pdo->prepare(
+            'INSERT INTO accounting_requests (id, validation_id, pdf_url, status)
+             VALUES (:id, :validation_id, :pdf_url, :status)'
+        );
+        $insert->execute([
+            'id' => uuid_v4(),
+            'validation_id' => $id,
+            'pdf_url' => $storedPath,
+            'status' => 'pending',
+        ]);
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        if (is_file(storage_directory() . '/' . $storedPath)) {
+            unlink(storage_directory() . '/' . $storedPath);
+        }
+        error_log('ChantierProof accounting request creation failed: ' . $error->getMessage());
+        send_json(503, ['ok' => false, 'error' => 'Envoi à la comptabilité temporairement indisponible.']);
+    }
+    send_json(201, ['ok' => true]);
+}
+
 if ($action === 'validations') {
     $profile = require_profile();
 
@@ -883,8 +1202,17 @@ if ($action === 'public-validation') {
         'validation' => [
             'id' => $row['id'],
             'client_name' => $row['client_name'],
+            'client_phone' => $row['client_phone'],
             'intervention_title' => $row['intervention_title'],
+            'intervention_price' => $row['intervention_price'],
+            'gps_position' => $row['gps_position'],
             'status' => $row['status'],
+            'accounting_status' => $row['accounting_status'],
+            'photo_before_url' => $row['photo_before_url'],
+            'photo_after_url' => $row['photo_after_url'],
+            'signature_png_url' => $row['signature_png_url'],
+            'technician_name' => $row['technician_name'],
+            'technician_notes' => $row['technician_notes'],
             'signer_name' => $row['signer_name'],
             'signed_at' => $row['signed_at'],
             'validation_link_expires_at' => $row['validation_link_expires_at'],

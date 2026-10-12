@@ -3,6 +3,9 @@
   const errorBox = document.getElementById("invite-error");
   const linkBox = document.getElementById("invite-link-box");
   const table = document.getElementById("invitations-table");
+  const membersTable = document.getElementById("company-users-table");
+  const membersError = document.getElementById("members-error");
+  const resetLinkBox = document.getElementById("password-reset-link-box");
   const submitButton = form.querySelector('[type="submit"]');
   const fullNameInput = document.getElementById("invite-full-name");
   const emailInput = document.getElementById("invite-email");
@@ -114,6 +117,49 @@
     window.lucide?.createIcons();
   }
 
+  async function loadCompanyUsers() {
+    const result = await apiRequest("company-users");
+    const users = result.users || [];
+    membersTable.innerHTML = users.length ? users.map((user) => `
+      <tr class="border-b">
+        <td class="px-4 py-3 font-medium">${escapeHtml(user.full_name || "-")}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(user.email)}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(user.role)}</td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(user.team_name || "-")}</td>
+        <td class="px-4 py-3 text-right">
+          <button class="btn btn-secondary btn-sm create-reset-link" type="button"
+            data-user-id="${escapeHtml(user.id)}" data-email="${escapeHtml(user.email)}">
+            Générer un lien
+          </button>
+        </td>
+      </tr>
+    `).join("") : '<tr><td class="px-4 py-3 text-slate-500" colspan="5">Aucun compte dans l’entreprise.</td></tr>';
+  }
+
+  async function createResetLink(userId, email, button) {
+    if (!window.confirm(`Générer un nouveau lien de réinitialisation pour ${email} ? Tout ancien lien sera invalidé.`)) return;
+    button.disabled = true;
+    membersError.classList.add("hidden");
+    resetLinkBox.classList.add("hidden");
+    try {
+      const result = await apiRequest("password-reset-link", {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId })
+      });
+      const url = new URL("./password-reset.html", window.location.href);
+      url.searchParams.set("token", result.token);
+      const link = url.href;
+      resetLinkBox.innerHTML = `Lien valide 1 heure, à transmettre manuellement à ${escapeHtml(email)} :<br><a class="font-semibold text-blue-700" href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(link)}</a>`;
+      resetLinkBox.classList.remove("hidden");
+    } catch (error) {
+      console.error("Password reset link generation failed:", error);
+      membersError.textContent = error.message || "Impossible de générer le lien.";
+      membersError.classList.remove("hidden");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function createInvitation(event) {
     event.preventDefault();
     errorBox.classList.add("hidden");
@@ -167,11 +213,17 @@
     const button = event.target.closest(".delete-invitation");
     if (button) deleteInvitation(button.dataset.id, button.dataset.email, button);
   });
+  membersTable.addEventListener("click", (event) => {
+    const button = event.target.closest(".create-reset-link");
+    if (button) createResetLink(button.dataset.userId, button.dataset.email, button);
+  });
 
   requireAdmin().then((isAdmin) => {
-    if (isAdmin) return loadInvitations();
+    if (isAdmin) return Promise.all([loadInvitations(), loadCompanyUsers()]);
   }).catch((error) => {
     console.error("Collaborator management initialization failed:", error);
+    membersError.textContent = error.message || "Impossible de vérifier votre session.";
+    membersError.classList.remove("hidden");
     showError(error.message || "Impossible de vérifier votre session.");
   });
   window.lucide?.createIcons();

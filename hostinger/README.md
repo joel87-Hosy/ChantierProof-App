@@ -17,6 +17,11 @@ The API currently provides:
 - `PATCH /api/index.php?action=profile` for the authenticated user's full name
   and team name, and `GET`/`POST /api/index.php?action=profile-avatar` for
   private avatar retrieval and upload.
+- `GET /api/index.php?action=company-users` and
+  `POST /api/index.php?action=password-reset-link` for company-admin user
+  listing and generation of a one-use, one-hour password-reset link.
+  `GET`/`POST /api/index.php?action=password-reset` validates the link and
+  changes the password; links are transmitted manually, without email.
 - `POST /api/index.php?action=login` and `POST /api/index.php?action=logout`
   for PHP-session authentication.
 - `GET /api/index.php?action=companies`, `POST /api/index.php?action=companies`,
@@ -36,6 +41,10 @@ The API currently provides:
 - `GET /api/index.php?action=validation-detail&id=<uuid>` for authenticated
   validation details and `GET /api/index.php?action=asset&path=<path>` for
   authorized private validation files.
+- `POST /api/index.php?action=accounting-request` stores a generated PDF and
+  creates a company accounting request from an active, signed validation link.
+  `GET`/`PATCH /api/index.php?action=accounting-requests` provides the
+  company-scoped accounting queue and processing action to admins/accountants.
 
 Login checks `profiles.password_hash` using PHP's password verifier. Session
 cookies are HttpOnly, SameSite=Lax, and Secure when served over HTTPS. State
@@ -71,14 +80,14 @@ support. For a new database, `schema.sql` already includes this column.
 
 ## Not ready for public cutover
 
-The login, invitation activation, Super Admin company management,
-collaborator invitations, profile editing and private avatar storage,
-validation dashboard, public field validation, recap, validation detail, and
-new validation-file storage now use the Hostinger API. The accounting, PDF
-generation, and password reset are not migrated yet. Their navigation is
-hidden where appropriate. Do not deploy this intermediate state as the live
-application or disable Supabase. Continue implementing and testing the
-remaining APIs and frontend flows before changing the public domain.
+Login, invitations, company and collaborator management, profile editing,
+private avatars, validation, PDF generation and storage, and the accounting
+queue now use the Hostinger API. Password reset uses one-use links generated
+by a company admin and transmitted manually; no SMTP configuration is
+required. The app has been tested incrementally on the staging subdomain, but
+each newly migrated workflow still needs its staging acceptance test before
+public cutover. Keep Supabase and the public domain unchanged until the user
+explicitly approves cutover.
 
 The migration is intentionally starting with an empty Hostinger database;
 existing Supabase data remains untouched. Previously downloaded Supabase

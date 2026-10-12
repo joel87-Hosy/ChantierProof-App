@@ -96,6 +96,9 @@
     if (currentProfile?.role === "admin" && currentProfile?.company_id) {
       usersLink?.classList.remove("hidden");
     }
+    if (["admin", "accountant"].includes(currentProfile?.role) && currentProfile?.company_id) {
+      accountingLink?.classList.remove("hidden");
+    }
   }
 
   async function signedAvatar(path) {
